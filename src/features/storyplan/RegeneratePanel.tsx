@@ -124,6 +124,7 @@ export function RegeneratePanel({
           type="button"
           onClick={() => onRefreshModels()}
           title="Refresh available models"
+          aria-label="Refresh available models"
         >
           ↻
         </button>
