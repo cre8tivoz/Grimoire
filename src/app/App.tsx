@@ -433,7 +433,7 @@ export function App() {
             {focusMode ? "Exit Focus" : "Focus"}
           </button>
           {canUseNative && (
-            <button className="icon-button" type="button" title="New Project" onClick={() => setView("picker")}>
+            <button className="icon-button" type="button" aria-label="New Project" title="New Project" onClick={() => setView("picker")}>
               <Plus size={17} />
             </button>
           )}
@@ -615,7 +615,7 @@ export function App() {
               )}
             </div>
           ) : (
-            <button className="collapsed-rail left" type="button" onClick={() => setLeftOpen(true)} title="Open panel">
+            <button className="collapsed-rail left" type="button" onClick={() => setLeftOpen(true)} aria-label="Open panel" title="Open panel">
               {leftTab === "vault" ? <BookOpenText size={18} /> : <ScrollText size={18} />}
               <ChevronRight size={14} />
             </button>
@@ -762,7 +762,7 @@ export function App() {
       {toast && (
         <div className="toast" role="status" aria-live="polite">
           {toast}
-          <button className="icon-button" type="button" onClick={() => setToast(null)} style={{ marginLeft: 8 }}>
+          <button className="icon-button" type="button" aria-label="Close notification" onClick={() => setToast(null)} style={{ marginLeft: 8 }}>
             <X size={14} />
           </button>
         </div>

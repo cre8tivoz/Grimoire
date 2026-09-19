@@ -178,7 +178,7 @@ export function CandidateReview({
                             {ward.label}
                           </span>
                           <div className="sp-row-actions">
-                            <button type="button" title="Copy text" onClick={() => void handleCopy(candidate.content)}>
+                            <button type="button" aria-label="Copy text" title="Copy text" onClick={() => void handleCopy(candidate.content)}>
                               <Copy size={12} aria-hidden="true" />
                             </button>
                           </div>
