@@ -65,6 +65,7 @@ function DrawerBranch({ drawer, activeItemId, expandedNodeIds, onArchiveItem, on
       {drawer.items.map((item) => (
         <div key={item.id} className={`tree-item ${item.id === activeItemId ? "active" : ""}`}
           onClick={() => onSelectItem(item.id)} role="button" tabIndex={0}
+          aria-selected={item.id === activeItemId}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectItem(item.id); } }}>
           <span>{item.title}</span>
           <div className="tree-item-actions">
