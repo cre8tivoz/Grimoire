@@ -1,6 +1,6 @@
 // src/features/storyplan/CandidateReview.tsx
 // Candidate review UI — Fabula-style convergent iteration (Sprint 4).
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check, Copy, History, ShieldAlert, ShieldCheck, ShieldOff, X,
 } from "lucide-react";
@@ -73,6 +73,15 @@ export function CandidateReview({
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const reload = useCallback(async () => {
     if (!targetId) return;
@@ -128,7 +137,13 @@ export function CandidateReview({
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
       showToast("Copied to clipboard.");
-      setTimeout(() => setCopiedId(null), 2000);
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedId(null);
+        copyTimeoutRef.current = null;
+      }, 2000);
     } catch {
       showToast("Could not copy.");
     }
