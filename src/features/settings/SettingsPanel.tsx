@@ -46,16 +46,17 @@ export function SettingsPanel({
   return (
     <div className="onboarding-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <section className="onboarding-panel settings-panel">
-        <button className="icon-button dismiss" type="button" aria-label="Close settings" onClick={onClose}>
-          <X size={16} />
+        <button className="icon-button dismiss" type="button" aria-label="Close settings" title="Close settings" onClick={onClose}>
+          <X size={16} aria-hidden="true" />
         </button>
         <p className="eyebrow">Settings</p>
         <h2 id="settings-title">Project Settings</h2>
 
         <div className="settings-section">
-          <h3><Settings size={14} /> Project</h3>
-          <label className="settings-label">Project Name</label>
+          <h3><Settings size={14} aria-hidden="true" /> Project</h3>
+          <label className="settings-label" htmlFor="settings-project-name">Project Name</label>
           <input
+            id="settings-project-name"
             className="compact-input"
             value={projectName}
             onChange={(e) => onProjectNameChange(e.target.value)}
@@ -64,27 +65,27 @@ export function SettingsPanel({
         </div>
 
         <div className="settings-section">
-          <h3><Moon size={14} /> Appearance</h3>
+          <h3><Moon size={14} aria-hidden="true" /> Appearance</h3>
           <div className="provider-grid">
             <button
               className={theme === "dark" ? "provider-button active" : "provider-button"}
               type="button"
               onClick={() => onThemeChange("dark")}
             >
-              <span><Moon size={14} /> Dark</span>
+              <span><Moon size={14} aria-hidden="true" /> Dark</span>
             </button>
             <button
               className={theme === "ivory" ? "provider-button active" : "provider-button"}
               type="button"
               onClick={() => onThemeChange("ivory")}
             >
-              <span><SunMedium size={14} /> Ivory</span>
+              <span><SunMedium size={14} aria-hidden="true" /> Ivory</span>
             </button>
           </div>
         </div>
 
         <div className="settings-section">
-          <h3><Globe size={14} /> AI Provider</h3>
+          <h3><Globe size={14} aria-hidden="true" /> AI Provider</h3>
           <div className="provider-grid">
             {(["ollama", "openAi", "openAiCompatible", "anthropic", "googleAiStudio"] as AiProviderKind[]).map((p) => (
               <button
@@ -102,9 +103,10 @@ export function SettingsPanel({
 
         {activeProvider === "ollama" && (
           <div className="settings-section">
-            <h3><Globe size={14} /> Ollama</h3>
-            <label className="settings-label">Ollama URL</label>
+            <h3><Globe size={14} aria-hidden="true" /> Ollama</h3>
+            <label className="settings-label" htmlFor="settings-ollama-url">Ollama URL</label>
             <input
+              id="settings-ollama-url"
               className="compact-input"
               value={ollamaUrl}
               onChange={(e) => onOllamaUrlChange(e.target.value)}
@@ -115,8 +117,10 @@ export function SettingsPanel({
 
         {activeProvider !== "ollama" && (
           <div className="settings-section">
-            <h3><Key size={14} /> API Key</h3>
+            <h3><Key size={14} aria-hidden="true" /> API Key</h3>
+            <label className="settings-label" htmlFor="settings-api-key">API Key</label>
             <input
+              id="settings-api-key"
               className="compact-input"
               type="password"
               value={apiKey}
@@ -125,10 +129,10 @@ export function SettingsPanel({
             />
             <div className="inline-actions">
               <button className="button button-primary" type="button" onClick={onApiKeySave} disabled={!apiKey.trim()}>
-                <Key size={16} /> Save Key
+                <Key size={16} aria-hidden="true" /> Save Key
               </button>
               <button className="button button-secondary" type="button" onClick={onApiKeyDelete} disabled={!hasApiKey}>
-                <Trash2 size={16} /> Delete Key
+                <Trash2 size={16} aria-hidden="true" /> Delete Key
               </button>
             </div>
           </div>

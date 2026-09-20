@@ -1,6 +1,6 @@
 // src/features/storyplan/CandidateReview.tsx
 // Candidate review UI — Fabula-style convergent iteration (Sprint 4).
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check, Copy, History, ShieldAlert, ShieldCheck, ShieldOff, X,
 } from "lucide-react";
@@ -72,6 +72,16 @@ export function CandidateReview({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const reload = useCallback(async () => {
     if (!targetId) return;
@@ -122,10 +132,18 @@ export function CandidateReview({
     }
   }, [projectPath, reload, showToast]);
 
-  const handleCopy = useCallback(async (text: string) => {
+  const handleCopy = useCallback(async (id: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      setCopiedId(id);
       showToast("Copied to clipboard.");
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedId(null);
+        copyTimeoutRef.current = null;
+      }, 2000);
     } catch {
       showToast("Could not copy.");
     }
@@ -178,8 +196,17 @@ export function CandidateReview({
                             {ward.label}
                           </span>
                           <div className="sp-row-actions">
-                            <button type="button" aria-label="Copy text" title="Copy text" onClick={() => void handleCopy(candidate.content)}>
-                              <Copy size={12} aria-hidden="true" />
+                            <button
+                              type="button"
+                              aria-label={copiedId === candidate.id ? "Copied" : "Copy text"}
+                              title={copiedId === candidate.id ? "Copied" : "Copy text"}
+                              onClick={() => void handleCopy(candidate.id, candidate.content)}
+                            >
+                              {copiedId === candidate.id ? (
+                                <Check size={12} aria-hidden="true" />
+                              ) : (
+                                <Copy size={12} aria-hidden="true" />
+                              )}
                             </button>
                           </div>
                         </div>

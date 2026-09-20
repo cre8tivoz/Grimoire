@@ -60,7 +60,7 @@ function DrawerBranch({ drawer, activeItemId, expandedNodeIds, onArchiveItem, on
   return (
     <TreeBranch id={drawer.id} label={drawer.name} meta={`Drawer / ${drawer.items.length} items`} level={3} expanded={expanded} onToggle={onToggle}>
       <div className="tree-actions">
-        <button className="text-button" type="button" onClick={() => onCreateNode("item", drawer.id)}>New Item</button>
+        <button className="text-button" type="button" aria-label={`New Item in ${drawer.name}`} onClick={() => onCreateNode("item", drawer.id)}>New Item</button>
       </div>
       {drawer.items.map((item) => (
         <div key={item.id} className={`tree-item ${item.id === activeItemId ? "active" : ""}`}
@@ -69,8 +69,8 @@ function DrawerBranch({ drawer, activeItemId, expandedNodeIds, onArchiveItem, on
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectItem(item.id); } }}>
           <span>{item.title}</span>
           <div className="tree-item-actions">
-            <button type="button" aria-label={`Archive ${item.title}`} onClick={(e) => { e.stopPropagation(); onArchiveItem(item.id); }}>
-              <Archive size={12} />
+            <button type="button" aria-label={`Archive ${item.title}`} title={`Archive ${item.title}`} onClick={(e) => { e.stopPropagation(); onArchiveItem(item.id); }}>
+              <Archive size={12} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -87,7 +87,7 @@ function RoomBranch({ room, activeItemId, expandedNodeIds, onArchiveItem, onCrea
   return (
     <TreeBranch id={room.id} label={room.name} meta={`Room / ${countRoomItems(room)} items`} level={2} expanded={expanded} onToggle={onToggle}>
       <div className="tree-actions">
-        <button className="text-button" type="button" onClick={() => onCreateNode("drawer", room.id)}>New Drawer</button>
+        <button className="text-button" type="button" aria-label={`New Drawer in ${room.name}`} onClick={() => onCreateNode("drawer", room.id)}>New Drawer</button>
       </div>
       {room.drawers.map((drawer) => (
         <DrawerBranch key={drawer.id} drawer={drawer} activeItemId={activeItemId} expandedNodeIds={expandedNodeIds} onArchiveItem={onArchiveItem} onCreateNode={onCreateNode} onToggle={onToggle} onSelectItem={onSelectItem} />
@@ -104,7 +104,7 @@ function HallBranch({ hall, activeItemId, expandedNodeIds, onArchiveItem, onCrea
   return (
     <TreeBranch id={hall.id} label={hall.name} meta={`Hall / ${countHallItems(hall)} items`} level={1} expanded={expanded} onToggle={onToggle}>
       <div className="tree-actions">
-        <button className="text-button" type="button" onClick={() => onCreateNode("room", hall.id)}>New Room</button>
+        <button className="text-button" type="button" aria-label={`New Room in ${hall.name}`} onClick={() => onCreateNode("room", hall.id)}>New Room</button>
       </div>
       {hall.rooms.map((room) => (
         <RoomBranch key={room.id} room={room} activeItemId={activeItemId} expandedNodeIds={expandedNodeIds} onArchiveItem={onArchiveItem} onCreateNode={onCreateNode} onToggle={onToggle} onSelectItem={onSelectItem} />
@@ -121,7 +121,7 @@ function WingBranch({ wing, activeItemId, expandedNodeIds, onArchiveItem, onCrea
   return (
     <TreeBranch id={wing.id} label={wing.name} meta={`Wing / ${countWingItems(wing)} items`} level={0} expanded={expanded} onToggle={onToggle}>
       <div className="tree-actions">
-        <button className="text-button" type="button" onClick={() => onCreateNode("hall", wing.id)}>New Hall</button>
+        <button className="text-button" type="button" aria-label={`New Hall in ${wing.name}`} onClick={() => onCreateNode("hall", wing.id)}>New Hall</button>
       </div>
       {wing.halls.map((hall) => (
         <HallBranch key={hall.id} hall={hall} activeItemId={activeItemId} expandedNodeIds={expandedNodeIds} onArchiveItem={onArchiveItem} onCreateNode={onCreateNode} onToggle={onToggle} onSelectItem={onSelectItem} />
