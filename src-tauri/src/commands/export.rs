@@ -245,7 +245,7 @@ fn sanitize_filename(value: &str) -> String {
             }
         })
         .collect();
-    let trimmed = cleaned.trim_matches(|character| character == '-' || character == '_');
+    let trimmed = cleaned.trim_matches(|character| character == '-' || character == '_' || character == '.');
     if trimmed.is_empty() {
         "untitled".to_string()
     } else {
@@ -264,5 +264,13 @@ mod tests {
             "Chapter-01_-Bell_Bones"
         );
         assert_eq!(sanitize_filename("///"), "untitled");
+    }
+
+    #[test]
+    fn sanitize_filename_prevents_path_traversal() {
+        assert_eq!(sanitize_filename("../../etc/passwd"), "etc_passwd");
+        assert_eq!(sanitize_filename("..\\..\\secret.txt"), "secret_txt");
+        assert_eq!(sanitize_filename(".."), "untitled");
+        assert_eq!(sanitize_filename(".hidden"), "hidden");
     }
 }
