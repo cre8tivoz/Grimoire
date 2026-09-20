@@ -355,11 +355,11 @@ export function StoryPlanPanel({
             <option key={plan.id} value={plan.id}>{plan.projectName}</option>
           ))}
         </select>
-        <button className="icon-button" type="button" title="New story plan" onClick={() => void handleCreatePlan()}>
+        <button className="icon-button" type="button" aria-label="New story plan" title="New story plan" onClick={() => void handleCreatePlan()}>
           <Plus size={16} />
         </button>
         {detail && (
-          <button className="icon-button" type="button" title="Delete story plan" onClick={() => void handleDeletePlan()}>
+          <button className="icon-button" type="button" aria-label="Delete story plan" title="Delete story plan" onClick={() => void handleDeletePlan()}>
             <Trash2 size={15} />
           </button>
         )}
@@ -453,23 +453,23 @@ export function StoryPlanPanel({
                     </button>
                     <div className="sp-row-actions">
                       {scene.linkedItemId && (
-                        <button type="button" title="Open linked Vault item"
+                        <button type="button" aria-label="Open linked Vault item" title="Open linked Vault item"
                           onClick={() => onOpenLinkedItem(scene.linkedItemId as string)}>
                           <Link2 size={12} />
                         </button>
                       )}
-                      <button type="button" title="Move scene up" disabled={sceneIndex === 0}
+                      <button type="button" aria-label="Move scene up" title="Move scene up" disabled={sceneIndex === 0}
                         onClick={() => handleReorder("scene", scene.id, "up")}>
                         <ArrowUp size={12} />
                       </button>
-                      <button type="button" title="Move scene down" disabled={sceneIndex === detail.scenes.length - 1}
+                      <button type="button" aria-label="Move scene down" title="Move scene down" disabled={sceneIndex === detail.scenes.length - 1}
                         onClick={() => handleReorder("scene", scene.id, "down")}>
                         <ArrowDown size={12} />
                       </button>
-                      <button type="button" title="Edit scene" onClick={() => openSceneEditor(scene)}>
+                      <button type="button" aria-label="Edit scene" title="Edit scene" onClick={() => openSceneEditor(scene)}>
                         ✎
                       </button>
-                      <button type="button" title="Delete scene" onClick={() => handleDeleteScene(scene.id, scene.title)}>
+                      <button type="button" aria-label="Delete scene" title="Delete scene" onClick={() => handleDeleteScene(scene.id, scene.title)}>
                         <X size={12} />
                       </button>
                     </div>
@@ -545,20 +545,21 @@ export function StoryPlanPanel({
                                 )}
                                 <div className="sp-row-actions">
                                   <button type="button"
+                                    aria-label={beat.locked ? "Unpin beat" : "Pin the beat — pinned beats will not drift"}
                                     title={beat.locked ? "Unpin beat" : "Pin the beat — pinned beats will not drift"}
                                     onClick={() => handleToggleLock(beat)}>
                                     {beat.locked ? <ShieldCheck size={13} /> : <Shield size={13} />}
                                   </button>
-                                  <button type="button" title="Move beat up" disabled={beatIndex === 0}
+                                  <button type="button" aria-label="Move beat up" title="Move beat up" disabled={beatIndex === 0}
                                     onClick={() => handleReorder("beat", beat.id, "up")}>
                                     <ArrowUp size={12} />
                                   </button>
-                                  <button type="button" title="Move beat down" disabled={beatIndex === scene.beats.length - 1}
+                                  <button type="button" aria-label="Move beat down" title="Move beat down" disabled={beatIndex === scene.beats.length - 1}
                                     onClick={() => handleReorder("beat", beat.id, "down")}>
                                     <ArrowDown size={12} />
                                   </button>
-                                  <button type="button" title="Edit beat" onClick={() => openBeatEditor(beat)}>✎</button>
-                                  <button type="button" title="Delete beat" onClick={() => handleDeleteBeat(beat.id)}>
+                                  <button type="button" aria-label="Edit beat" title="Edit beat" onClick={() => openBeatEditor(beat)}>✎</button>
+                                  <button type="button" aria-label="Delete beat" title="Delete beat" onClick={() => handleDeleteBeat(beat.id)}>
                                     <X size={12} />
                                   </button>
                                 </div>

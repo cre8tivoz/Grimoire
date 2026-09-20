@@ -42,7 +42,7 @@ function TreeBranch({
 }) {
   return (
     <div className="tree-branch" style={treeDepthStyle(level)}>
-      <button className="tree-branch-toggle" type="button" aria-expanded={expanded} onClick={() => onToggle(id)}>
+      <button className="tree-branch-toggle" type="button" aria-expanded={expanded} aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`} onClick={() => onToggle(id)}>
         {expanded ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
         <span className="tree-branch-label">{label}</span>
         <small>{meta}</small>
@@ -65,7 +65,8 @@ function DrawerBranch({ drawer, activeItemId, expandedNodeIds, onArchiveItem, on
       {drawer.items.map((item) => (
         <div key={item.id} className={`tree-item ${item.id === activeItemId ? "active" : ""}`}
           onClick={() => onSelectItem(item.id)} role="button" tabIndex={0}
-          onKeyDown={(e) => { if (e.key === "Enter") onSelectItem(item.id); }}>
+          aria-selected={item.id === activeItemId}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectItem(item.id); } }}>
           <span>{item.title}</span>
           <div className="tree-item-actions">
             <button type="button" aria-label={`Archive ${item.title}`} onClick={(e) => { e.stopPropagation(); onArchiveItem(item.id); }}>
