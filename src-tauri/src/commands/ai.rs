@@ -217,6 +217,7 @@ pub fn ensure_cloud_provider_ready(
 #[tauri::command]
 pub fn chat_with_vault(request: ChatWithVaultRequest) -> CommandResult<ChatWithVaultResponse> {
     let connection = open_project_database(&request.project_path)?;
+    ensure_cloud_provider_ready(&connection, request.provider)?;
     llm::chat_with_vault(&connection, &request)
 }
 
@@ -249,5 +250,51 @@ mod tests {
 
         let settings = provider_settings(&connection, AiProviderKind::OpenAi).unwrap();
         assert!(settings.api_key_present);
+    }
+
+    #[test]
+    fn ensure_cloud_provider_ready_blocks_unaccepted_disclosure() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute_batch(
+                r#"
+                CREATE TABLE settings (
+                  key TEXT PRIMARY KEY,
+                  value TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                );
+                "#,
+            )
+            .unwrap();
+
+        // Local provider Ollama requires no disclosure
+        assert!(ensure_cloud_provider_ready(&connection, AiProviderKind::Ollama).is_ok());
+
+        // Cloud provider without disclosure accepted must return error
+        let err = ensure_cloud_provider_ready(&connection, AiProviderKind::OpenAi).unwrap_err();
+        assert!(err.contains("Accept the cloud model disclosure"));
+
+        // After accepting disclosure but missing API key, must return API key error
+        connection
+            .execute_batch(
+                r#"
+                INSERT INTO settings (key, value, updated_at)
+                VALUES ('ai.provider.openAi.disclosureAcceptedAt', '2026-08-25', 'test');
+                "#,
+            )
+            .unwrap();
+        let err2 = ensure_cloud_provider_ready(&connection, AiProviderKind::OpenAi).unwrap_err();
+        assert!(err2.contains("Add an API key"));
+
+        // After setting API key present, ensure_cloud_provider_ready passes
+        connection
+            .execute_batch(
+                r#"
+                INSERT INTO settings (key, value, updated_at)
+                VALUES ('ai.provider.openAi.apiKeyPresent', 'true', 'test');
+                "#,
+            )
+            .unwrap();
+        assert!(ensure_cloud_provider_ready(&connection, AiProviderKind::OpenAi).is_ok());
     }
 }
