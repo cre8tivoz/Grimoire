@@ -142,7 +142,7 @@ describe("StoryPlanPanel accessibility", () => {
     const moveBeatDownBtn = screen.getByLabelText("Move beat 1 down");
     expect(moveBeatDownBtn).toHaveAttribute("title", "Move beat 1 down");
 
-    const pinBeatBtn = screen.getByLabelText("Pin beat 1");
+    const pinBeatBtn = screen.getByLabelText("Pin beat 1 — pinned beats will not drift");
     expect(pinBeatBtn).toHaveAttribute("title", "Pin beat 1 — pinned beats will not drift");
   });
 });

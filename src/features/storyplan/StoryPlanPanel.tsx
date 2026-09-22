@@ -545,7 +545,7 @@ export function StoryPlanPanel({
                                 )}
                                 <div className="sp-row-actions">
                                   <button type="button"
-                                    aria-label={beat.locked ? `Unpin beat ${beatIndex + 1}` : `Pin beat ${beatIndex + 1}`}
+                                    aria-label={beat.locked ? `Unpin beat ${beatIndex + 1}` : `Pin beat ${beatIndex + 1} — pinned beats will not drift`}
                                     title={beat.locked ? `Unpin beat ${beatIndex + 1}` : `Pin beat ${beatIndex + 1} — pinned beats will not drift`}
                                     onClick={() => handleToggleLock(beat)}>
                                     {beat.locked ? <ShieldCheck size={13} aria-hidden="true" /> : <Shield size={13} aria-hidden="true" />}
