@@ -228,10 +228,10 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
               <CitationList results={props.retrievalResults} />
               <WardWarnings hits={props.answerWardHits} />
               <div className="inline-actions">
-                <button className="button button-secondary" type="button" onClick={props.onInsertAnswer}><Check size={16} />{props.answerWardHits.length ? "Insert Anyway" : "Insert"}</button>
-                <button className="icon-button" type="button" aria-label="Copy answer" onClick={props.onCopyAnswer}><Copy size={16} /></button>
-                <button className="icon-button" type="button" aria-label="Rewrite clean" onClick={props.onRewriteClean}><WandSparkles size={16} /></button>
-                <button className="icon-button" type="button" aria-label="Discard answer" onClick={props.onDiscardAnswer}><X size={16} /></button>
+                <button className="button button-secondary" type="button" onClick={props.onInsertAnswer}><Check size={16} aria-hidden="true" />{props.answerWardHits.length ? "Insert Anyway" : "Insert"}</button>
+                <button className="icon-button" type="button" aria-label="Copy answer" title="Copy answer" onClick={props.onCopyAnswer}><Copy size={16} aria-hidden="true" /></button>
+                <button className="icon-button" type="button" aria-label="Rewrite clean" title="Rewrite clean" onClick={props.onRewriteClean}><WandSparkles size={16} aria-hidden="true" /></button>
+                <button className="icon-button" type="button" aria-label="Discard answer" title="Discard answer" onClick={props.onDiscardAnswer}><X size={16} aria-hidden="true" /></button>
               </div>
             </div>
           ) : null}
@@ -244,13 +244,13 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
             <select className="compact-input severity-select" value={props.wardSeverity} onChange={(e) => props.onWardSeverityChange(e.target.value as WardSeverity)}>
               <option value="warn">Warn</option><option value="block">Block</option>
             </select>
-            <button className="icon-button" type="submit" aria-label="Add ward phrase"><Plus size={16} /></button>
+            <button className="icon-button" type="submit" aria-label="Add ward phrase" title="Add ward phrase"><Plus size={16} aria-hidden="true" /></button>
           </form>
           <div className="ward-list">
             {props.wards.slice(0, 10).map((ward) => (
               <span key={ward.id} className="ward-token">
                 {ward.value}<small>{ward.severity}</small>
-                {!ward.isDefault ? <button type="button" aria-label={`Remove ${ward.value}`} onClick={() => props.onWardRemove(ward.id)}><Trash2 size={12} /></button> : null}
+                {!ward.isDefault ? <button type="button" aria-label={`Remove ${ward.value}`} title={`Remove ${ward.value}`} onClick={() => props.onWardRemove(ward.id)}><Trash2 size={12} aria-hidden="true" /></button> : null}
               </span>
             ))}
           </div>
