@@ -444,7 +444,10 @@ pub fn search_chunks_internal(
     query: &str,
     limit: i64,
 ) -> CommandResult<Vec<SearchChunkResult>> {
-    let fts_query = fts_query_terms(query)?;
+    let fts_query = match fts_query_terms(query) {
+        Ok(terms) => terms,
+        Err(_) => return Ok(Vec::new()),
+    };
     let limit = limit.clamp(1, 24);
     let mut statement = connection
         .prepare(
@@ -502,7 +505,10 @@ pub fn search_character_chunks_internal(
     query: &str,
     limit: i64,
 ) -> CommandResult<Vec<SearchChunkResult>> {
-    let fts_query = fts_query_terms(query)?;
+    let fts_query = match fts_query_terms(query) {
+        Ok(terms) => terms,
+        Err(_) => return Ok(Vec::new()),
+    };
     let limit = limit.clamp(1, 24);
     let mut statement = connection
         .prepare(
@@ -897,5 +903,15 @@ mod tests {
         let labels = import_progress_labels();
         assert_eq!(labels.len(), 4);
         assert!(labels.iter().all(|l| !l.is_empty()));
+    }
+
+    #[test]
+    fn internal_search_helpers_return_empty_for_symbol_queries() {
+        let conn = test_db();
+        let chunks = search_chunks_internal(&conn, "???", 5).unwrap();
+        assert!(chunks.is_empty());
+
+        let char_chunks = search_character_chunks_internal(&conn, ":)", 5).unwrap();
+        assert!(char_chunks.is_empty());
     }
 }
