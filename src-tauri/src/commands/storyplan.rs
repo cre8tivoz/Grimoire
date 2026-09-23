@@ -185,12 +185,14 @@ fn touch_plan(connection: &Connection, plan_id: &str) -> CommandResult<()> {
 /// Candidates are keyed by polymorphic target, so FK cascades cannot clean
 /// them up. Remove any candidates targeting the given ids.
 fn delete_candidates_for(connection: &Connection, target_ids: &[String]) -> CommandResult<()> {
-    for target_id in target_ids {
+    if target_ids.is_empty() {
+        return Ok(());
+    }
+    for chunk in target_ids.chunks(500) {
+        let placeholders = std::iter::repeat("?").take(chunk.len()).collect::<Vec<_>>().join(",");
+        let sql = format!("DELETE FROM story_candidates WHERE target_id IN ({placeholders})");
         connection
-            .execute(
-                "DELETE FROM story_candidates WHERE target_id = ?1",
-                params![target_id],
-            )
+            .execute(&sql, rusqlite::params_from_iter(chunk))
             .map_err(|error| format!("Could not clean up story candidates: {error}"))?;
     }
     Ok(())
@@ -1790,6 +1792,26 @@ mod tests {
         assert_eq!(hits[0].value, "tapestry");
         assert_eq!(hits[0].severity, "block");
         assert_eq!(hits[0].count, 2);
+    }
+
+    #[test]
+    fn benchmark_delete_candidates_for() {
+        let conn = test_db();
+        let target_ids: Vec<String> = (0..1000).map(|i| format!("target_{i}")).collect();
+        conn.execute_batch("BEGIN TRANSACTION;").unwrap();
+        for target_id in &target_ids {
+            conn.execute(
+                "INSERT INTO story_candidates (id, target_kind, target_id, provider, model, candidate_index, content, status, created_at) VALUES (?1, 'scene', ?2, 'ollama', 'llama3.2', 0, 'content', 'pending', '1')",
+                params![format!("cand_{target_id}"), target_id],
+            ).unwrap();
+        }
+        conn.execute_batch("COMMIT;").unwrap();
+
+        let start = std::time::Instant::now();
+        delete_candidates_for(&conn, &target_ids).unwrap();
+        let elapsed = start.elapsed();
+        println!("BENCHMARK_DELETE_CANDIDATES: {:?}", elapsed);
+        assert_eq!(count(&conn, "SELECT COUNT(*) FROM story_candidates"), 0);
     }
 
     #[test]
