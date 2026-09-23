@@ -44,7 +44,7 @@ describe("CandidateReview", () => {
     vi.mocked(storyplanApp.listStoryCandidates).mockResolvedValue(mockCandidates);
   });
 
-  it("renders review toggle button", () => {
+  it("renders review toggle button with aria-controls", () => {
     render(
       <CandidateReview
         projectPath="/test"
@@ -55,7 +55,9 @@ describe("CandidateReview", () => {
         refreshKey={0}
       />,
     );
-    expect(screen.getByText("Review Candidates")).toBeInTheDocument();
+    const toggleBtn = screen.getByRole("button", { name: /Review Candidates/i });
+    expect(toggleBtn).toBeInTheDocument();
+    expect(toggleBtn).toHaveAttribute("aria-controls", "candidate-body-scene-sc-1");
   });
 
   it("shows candidate list when opened", async () => {
@@ -98,13 +100,13 @@ describe("CandidateReview", () => {
     await user.click(screen.getByText("Review Candidates"));
     await screen.findByText("Sample candidate text");
 
-    const copyBtn = screen.getByTitle("Copy text");
+    const copyBtn = screen.getByTitle("Copy candidate #1 text");
     expect(copyBtn).toBeInTheDocument();
 
     await user.click(copyBtn);
 
     expect(writeTextMock).toHaveBeenCalledWith("Sample candidate text");
     expect(showToast).toHaveBeenCalledWith("Copied to clipboard.");
-    expect(screen.getByTitle("Copied")).toBeInTheDocument();
+    expect(screen.getByTitle("Copied candidate #1 text")).toBeInTheDocument();
   });
 });
