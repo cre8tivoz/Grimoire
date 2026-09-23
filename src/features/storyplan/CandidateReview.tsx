@@ -261,15 +261,35 @@ export function CandidateReview({
                   <summary className="sp-candidate-group-title">
                     History ({resolved.length})
                   </summary>
-                  {resolved.map((candidate) => (
-                    <div key={candidate.id} className="sp-candidate-card historical">
-                      <div className="sp-candidate-head">
-                        <span className="sp-badge">#{candidate.candidateIndex + 1}</span>
-                        <span className={`sp-status-pill ${candidate.status}`}>{candidate.status}</span>
+                  {resolved.map((candidate) => {
+                    const candidateNum = candidate.candidateIndex + 1;
+                    const copyLabel = copiedId === candidate.id
+                      ? `Copied candidate #${candidateNum} text`
+                      : `Copy candidate #${candidateNum} text`;
+                    return (
+                      <div key={candidate.id} className="sp-candidate-card historical">
+                        <div className="sp-candidate-head">
+                          <span className="sp-badge">#{candidateNum}</span>
+                          <span className={`sp-status-pill ${candidate.status}`}>{candidate.status}</span>
+                          <div className="sp-row-actions">
+                            <button
+                              type="button"
+                              aria-label={copyLabel}
+                              title={copyLabel}
+                              onClick={() => void handleCopy(candidate.id, candidate.content)}
+                            >
+                              {copiedId === candidate.id ? (
+                                <Check size={12} aria-hidden="true" />
+                              ) : (
+                                <Copy size={12} aria-hidden="true" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="sp-candidate-content">{candidate.content}</p>
                       </div>
-                      <p className="sp-candidate-content">{candidate.content}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </details>
               )}
             </>
