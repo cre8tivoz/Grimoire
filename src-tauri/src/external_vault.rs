@@ -18,6 +18,15 @@ pub fn parse_external_vault(path: Option<String>) -> ExternalResult<ExternalVaul
         }
     };
 
+    // Security check: restrict file reading to .yaml / .yml external Vault structures.
+    let extension = source_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_lowercase());
+    if !matches!(extension.as_deref(), Some("yaml") | Some("yml")) {
+        return Err("Choose an external Vault .yaml or .yml file.".to_string());
+    }
+
     let raw = fs::read_to_string(&source_path).map_err(|error| {
         format!(
             "Could not read external vault YAML at {}: {error}",
@@ -172,5 +181,26 @@ fn value_to_string_list(value: &Value) -> Vec<String> {
         Value::Sequence(items) => items.iter().filter_map(value_to_string).collect(),
         Value::String(text) => vec![text.trim().to_string()],
         _ => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_external_vault_rejects_non_yaml_extensions() {
+        assert_eq!(
+            parse_external_vault(Some("/etc/passwd".to_string())).unwrap_err(),
+            "Choose an external Vault .yaml or .yml file."
+        );
+        assert_eq!(
+            parse_external_vault(Some("secret.txt".to_string())).unwrap_err(),
+            "Choose an external Vault .yaml or .yml file."
+        );
+        assert_eq!(
+            parse_external_vault(Some(".env".to_string())).unwrap_err(),
+            "Choose an external Vault .yaml or .yml file."
+        );
     }
 }
