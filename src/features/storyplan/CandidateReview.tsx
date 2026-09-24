@@ -151,6 +151,7 @@ export function CandidateReview({
 
   const pending = candidates.filter((c) => c.status === "pending");
   const resolved = candidates.filter((c) => c.status !== "pending");
+  const bodyId = `candidate-body-${targetKind}-${targetId}`;
 
   return (
     <div className="sp-candidate-review">
@@ -158,6 +159,7 @@ export function CandidateReview({
         className="sp-section-toggle"
         type="button"
         aria-expanded={open}
+        aria-controls={bodyId}
         onClick={() => setOpen((v) => !v)}
       >
         {open ? <ShieldCheck size={14} aria-hidden="true" /> : <ShieldAlert size={14} aria-hidden="true" />}
@@ -169,7 +171,7 @@ export function CandidateReview({
       </button>
 
       {open && (
-        <div className="sp-candidate-body">
+        <div className="sp-candidate-body" id={bodyId}>
           {loading ? (
             <p className="sp-candidate-empty">Loading…</p>
           ) : candidates.length === 0 ? (
@@ -187,10 +189,14 @@ export function CandidateReview({
                     const ward = wardLabel(wardHits, candidate.wardScanned);
                     const acceptLabel = linkedItemId ? "Accept & Send to Canvas" : "Accept";
                     const acceptDisabled = busyId === candidate.id || ward.tone === "block";
+                    const candidateNum = candidate.candidateIndex + 1;
+                    const copyLabel = copiedId === candidate.id
+                      ? `Copied candidate #${candidateNum} text`
+                      : `Copy candidate #${candidateNum} text`;
                     return (
                       <div key={candidate.id} className="sp-candidate-card">
                         <div className="sp-candidate-head">
-                          <span className="sp-badge">#{candidate.candidateIndex + 1}</span>
+                          <span className="sp-badge">#{candidateNum}</span>
                           <span className={`sp-ward-pill ${wardClassName(ward.tone)}`}>
                             {wardIcon(ward.tone)}
                             {ward.label}
@@ -198,8 +204,8 @@ export function CandidateReview({
                           <div className="sp-row-actions">
                             <button
                               type="button"
-                              aria-label={copiedId === candidate.id ? "Copied" : "Copy text"}
-                              title={copiedId === candidate.id ? "Copied" : "Copy text"}
+                              aria-label={copyLabel}
+                              title={copyLabel}
                               onClick={() => void handleCopy(candidate.id, candidate.content)}
                             >
                               {copiedId === candidate.id ? (
@@ -226,6 +232,8 @@ export function CandidateReview({
                             className="button button-primary"
                             type="button"
                             disabled={acceptDisabled}
+                            aria-label={`${acceptLabel} for candidate #${candidateNum}`}
+                            title={`${acceptLabel} for candidate #${candidateNum}`}
                             onClick={() => void handleAccept(candidate)}
                           >
                             <Check size={14} aria-hidden="true" />
@@ -235,6 +243,8 @@ export function CandidateReview({
                             className="button button-secondary"
                             type="button"
                             disabled={busyId === candidate.id}
+                            aria-label={`Reject candidate #${candidateNum}`}
+                            title={`Reject candidate #${candidateNum}`}
                             onClick={() => void handleReject(candidate)}
                           >
                             <X size={14} aria-hidden="true" /> Reject
@@ -251,15 +261,35 @@ export function CandidateReview({
                   <summary className="sp-candidate-group-title">
                     History ({resolved.length})
                   </summary>
-                  {resolved.map((candidate) => (
-                    <div key={candidate.id} className="sp-candidate-card historical">
-                      <div className="sp-candidate-head">
-                        <span className="sp-badge">#{candidate.candidateIndex + 1}</span>
-                        <span className={`sp-status-pill ${candidate.status}`}>{candidate.status}</span>
+                  {resolved.map((candidate) => {
+                    const candidateNum = candidate.candidateIndex + 1;
+                    const copyLabel = copiedId === candidate.id
+                      ? `Copied candidate #${candidateNum} text`
+                      : `Copy candidate #${candidateNum} text`;
+                    return (
+                      <div key={candidate.id} className="sp-candidate-card historical">
+                        <div className="sp-candidate-head">
+                          <span className="sp-badge">#{candidateNum}</span>
+                          <span className={`sp-status-pill ${candidate.status}`}>{candidate.status}</span>
+                          <div className="sp-row-actions">
+                            <button
+                              type="button"
+                              aria-label={copyLabel}
+                              title={copyLabel}
+                              onClick={() => void handleCopy(candidate.id, candidate.content)}
+                            >
+                              {copiedId === candidate.id ? (
+                                <Check size={12} aria-hidden="true" />
+                              ) : (
+                                <Copy size={12} aria-hidden="true" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="sp-candidate-content">{candidate.content}</p>
                       </div>
-                      <p className="sp-candidate-content">{candidate.content}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </details>
               )}
             </>
