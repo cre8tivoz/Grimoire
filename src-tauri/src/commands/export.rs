@@ -11,7 +11,11 @@ pub fn export_item_markdown(request: ExportItemRequest) -> CommandResult<ExportR
     let export_dir = project_dir.join("exports");
     fs::create_dir_all(&export_dir)
         .map_err(|error| format!("Could not create export folder: {error}"))?;
-    let file_path = export_dir.join(format!("{}.md", sanitize_filename(&item.title)));
+    let safe_filename = sanitize_filename(&item.title);
+    let file_path = export_dir.join(format!("{safe_filename}.md"));
+    if !file_path.starts_with(&export_dir) {
+        return Err("Export path traversal detected.".to_string());
+    }
     let markdown = format!("# {}\n\n{}\n", item.title, item.content.trim());
     fs::write(&file_path, markdown)
         .map_err(|error| format!("Could not write Markdown export: {error}"))?;
@@ -164,11 +168,13 @@ pub fn manuscript_export(request: ManuscriptExportRequest) -> CommandResult<Expo
     }
 
     let ext = "md";
+    let safe_filename = sanitize_filename(&request.project_name);
     let file_path = export_dir.join(format!(
-        "grimoire-manuscript-{}.{}",
-        sanitize_filename(&request.project_name),
-        ext
+        "grimoire-manuscript-{safe_filename}.{ext}"
     ));
+    if !file_path.starts_with(&export_dir) {
+        return Err("Export path traversal detected.".to_string());
+    }
     fs::write(&file_path, markdown)
         .map_err(|error| format!("Could not write manuscript export: {error}"))?;
 
@@ -272,5 +278,16 @@ mod tests {
         assert_eq!(sanitize_filename("..\\..\\secret.txt"), "secret_txt");
         assert_eq!(sanitize_filename(".."), "untitled");
         assert_eq!(sanitize_filename(".hidden"), "hidden");
+    }
+
+    #[test]
+    fn export_file_path_starts_with_export_dir() {
+        let export_dir = PathBuf::from("/tmp/my_project.grimoire/exports");
+        let safe_filename = sanitize_filename("../../etc/passwd");
+        let file_path = export_dir.join(format!("{safe_filename}.md"));
+        assert!(
+            file_path.starts_with(&export_dir),
+            "Sanitized filename must remain within export_dir"
+        );
     }
 }
