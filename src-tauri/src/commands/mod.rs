@@ -91,6 +91,28 @@ pub fn load_or_create_metadata(project_dir: &Path, name: &str) -> CommandResult<
     Ok(metadata)
 }
 
+pub fn is_safe_project_db_path(project_dir: &Path, db_path_str: &str) -> bool {
+    let db_path = Path::new(db_path_str);
+    if db_path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return false;
+    }
+    let full_path = if db_path.is_relative() {
+        project_dir.join(db_path)
+    } else {
+        db_path.to_path_buf()
+    };
+    if let Ok(canonical_proj) = project_dir.canonicalize() {
+        if let Ok(canonical_full) = full_path.canonicalize() {
+            return canonical_full.starts_with(&canonical_proj);
+        } else if let Some(parent) = full_path.parent() {
+            if let Ok(canonical_parent) = parent.canonicalize() {
+                return canonical_parent.starts_with(&canonical_proj);
+            }
+        }
+    }
+    full_path.starts_with(project_dir)
+}
+
 pub fn read_metadata(project_dir: &Path) -> CommandResult<ProjectMetadata> {
     let metadata_path = project_dir.join(METADATA_FILE);
     let raw = fs::read_to_string(&metadata_path).map_err(|error| {
@@ -99,7 +121,17 @@ pub fn read_metadata(project_dir: &Path) -> CommandResult<ProjectMetadata> {
             metadata_path.display()
         )
     })?;
-    serde_json::from_str(&raw).map_err(|error| format!("Could not parse project metadata: {error}"))
+    let mut metadata: ProjectMetadata =
+        serde_json::from_str(&raw).map_err(|error| format!("Could not parse project metadata: {error}"))?;
+
+    // Security check: database_path must reside inside project_dir
+    let expected_db_path = project_dir.join(DATABASE_FILE).to_string_lossy().to_string();
+    if !is_safe_project_db_path(project_dir, &metadata.database_path) {
+        metadata.database_path = expected_db_path;
+    }
+    metadata.project_path = project_dir.to_string_lossy().to_string();
+
+    Ok(metadata)
 }
 
 pub fn write_metadata(metadata: &ProjectMetadata) -> CommandResult<()> {
@@ -115,6 +147,11 @@ pub fn initialise_database(
     metadata: &ProjectMetadata,
     seed_demo: bool,
 ) -> CommandResult<ProjectMetadata> {
+    let proj_dir = PathBuf::from(&metadata.project_path);
+    if metadata.database_path != ":memory:" && !is_safe_project_db_path(&proj_dir, &metadata.database_path) {
+        return Err("Project database path traversal detected.".to_string());
+    }
+
     let mut connection = Connection::open(&metadata.database_path)
         .map_err(|error| format!("Could not open SQLite database: {error}"))?;
     connection
@@ -187,6 +224,51 @@ mod tests {
 
         let reloaded = read_metadata(&temp_dir).unwrap();
         assert_eq!(reloaded.schema_version, self::schema::SCHEMA_VERSION);
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn read_metadata_prevents_database_path_traversal() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_path_traversal_test_{}",
+            crate::helpers::timestamp_nanos()
+        ));
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        // 1. Absolute out-of-bounds path
+        let metadata = ProjectMetadata {
+            name: "Untrusted Project".to_string(),
+            app_version: "1.0.0".to_string(),
+            schema_version: self::schema::SCHEMA_VERSION,
+            project_path: temp_dir.to_string_lossy().to_string(),
+            database_path: "/etc/passwd".to_string(),
+            created_at: "1".to_string(),
+            updated_at: "1".to_string(),
+        };
+        write_metadata(&metadata).unwrap();
+
+        let loaded = read_metadata(&temp_dir).unwrap();
+        assert_ne!(loaded.database_path, "/etc/passwd");
+        assert!(
+            PathBuf::from(&loaded.database_path).starts_with(&temp_dir),
+            "Database path must be re-anchored inside the project directory"
+        );
+
+        // 2. Relative path traversal with '..'
+        let traversal_path = temp_dir.join("../../etc/passwd").to_string_lossy().to_string();
+        let metadata2 = ProjectMetadata {
+            database_path: traversal_path.clone(),
+            ..metadata
+        };
+        write_metadata(&metadata2).unwrap();
+
+        let loaded2 = read_metadata(&temp_dir).unwrap();
+        assert_ne!(loaded2.database_path, traversal_path);
+        assert!(
+            PathBuf::from(&loaded2.database_path).starts_with(&temp_dir),
+            "Relative path traversal must be caught and re-anchored"
+        );
 
         let _ = fs::remove_dir_all(&temp_dir);
     }
