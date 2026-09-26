@@ -98,7 +98,7 @@ function ProgressList({ labels }: { labels: string[] }) {
   return (
     <div className="progress-list">
       {labels.map((label) => (
-        <span key={label}><Check size={12} />{label}</span>
+        <span key={label}><Check size={12} aria-hidden="true" />{label}</span>
       ))}
     </div>
   );
@@ -143,14 +143,14 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
         {/* Feed */}
         <ToolAccordion id="feed" icon={<Upload size={15} />} open={props.openToolSectionSet.has("feed")} title="Feed" onToggle={props.onToggleToolSection}>
           <form className="tool-form" onSubmit={props.onPasteImport}>
-            <input className="compact-input" value={props.importTitle} onChange={(e) => props.onImportTitleChange(e.target.value)} placeholder="Import title" />
-            <textarea className="compact-textarea" value={props.importBody} onChange={(e) => props.onImportBodyChange(e.target.value)} placeholder="Paste text or Markdown, up to 10,000 words" />
+            <input className="compact-input" value={props.importTitle} onChange={(e) => props.onImportTitleChange(e.target.value)} placeholder="Import title" aria-label="Import title" />
+            <textarea className="compact-textarea" value={props.importBody} onChange={(e) => props.onImportBodyChange(e.target.value)} placeholder="Paste text or Markdown, up to 10,000 words" aria-label="Import content" />
             <p className="tool-hint">Import multiple .md, .markdown, or .txt files. Each file is capped at 10,000 words; add more chunks later if needed.</p>
             <div className="inline-actions">
               <button className="button button-primary" type="submit" disabled={props.importState === "working"}>
                 {props.importState === "working" ? <Loader2 size={16} /> : <Clipboard size={16} />}Import Paste
               </button>
-              <label className="file-button"><FileText size={16} aria-hidden="true" />Files<input type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" multiple onChange={(e) => props.onFileImport(e.currentTarget.files)} /></label>
+              <label className="file-button"><FileText size={16} aria-hidden="true" />Files<input type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" multiple aria-label="Upload files" onChange={(e) => props.onFileImport(e.currentTarget.files)} /></label>
             </div>
           </form>
           <ProgressList labels={props.importProgress} />
@@ -186,7 +186,7 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
           <p className={`operation-status ${props.engineState}`}>{props.engineStatus}</p>
           {props.engineError ? <p className="inline-error compact-error">{props.engineError}</p> : null}
           {props.modelOptions.length ? (
-            <select className="compact-input" value={props.modelDraft} onChange={(e) => props.onModelDraftChange(e.target.value)}>
+            <select className="compact-input" value={props.modelDraft} onChange={(e) => props.onModelDraftChange(e.target.value)} aria-label="Select AI model">
               <option value="" disabled>Choose model</option>
               {props.modelOptions.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -199,24 +199,24 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
               </div>
               <p className="tool-hint">Your system may ask for permission to use its secure credential store (macOS Keychain or Windows Credential Manager) because Grimoire saves API keys there instead of inside your project files.</p>
               <form className="tool-form" onSubmit={props.onApiKeySave}>
-                <input className="compact-input" type="password" autoComplete="off" value={props.apiKeyDraft} onChange={(e) => props.onApiKeyDraftChange(e.target.value)} placeholder={`Paste ${providerLabels[props.activeProvider]} API key`} />
+                <input className="compact-input" type="password" autoComplete="off" value={props.apiKeyDraft} onChange={(e) => props.onApiKeyDraftChange(e.target.value)} placeholder={`Paste ${providerLabels[props.activeProvider]} API key`} aria-label={`${providerLabels[props.activeProvider]} API key`} />
                 <div className="inline-actions">
                   <button className="button button-primary" type="submit" disabled={!props.apiKeyDraft.trim()}><ShieldCheck size={16} />Save Key</button>
                   <button className="button button-secondary" type="button" disabled={!props.activeProviderSettings?.apiKeyPresent} onClick={props.onApiKeyDelete}><Trash2 size={16} />Delete Key</button>
                 </div>
               </form>
-              {props.activeProvider === "openAiCompatible" ? <input className="compact-input" value={props.baseUrlDraft} onChange={(e) => props.onBaseUrlDraftChange(e.target.value)} placeholder="Base URL, e.g. https://api.example.com" /> : null}
+              {props.activeProvider === "openAiCompatible" ? <input className="compact-input" value={props.baseUrlDraft} onChange={(e) => props.onBaseUrlDraftChange(e.target.value)} placeholder="Base URL, e.g. https://api.example.com" aria-label="Base URL" /> : null}
             </div>
           ) : null}
           <form className="tool-form" onSubmit={props.onEngineSettingsSave}>
-            <input className="compact-input" value={props.modelDraft} onChange={(e) => props.onModelDraftChange(e.target.value)} placeholder={props.activeProvider === "ollama" ? "Choose a detected local model" : "Model ID"} />
+            <input className="compact-input" value={props.modelDraft} onChange={(e) => props.onModelDraftChange(e.target.value)} placeholder={props.activeProvider === "ollama" ? "Choose a detected local model" : "Model ID"} aria-label={props.activeProvider === "ollama" ? "Local model name" : "Model ID"} />
             <button className="button button-secondary full-width" type="submit"><Check size={16} />Save Engine Settings</button>
           </form>
         </ToolAccordion>
 
         {/* Co-Writer */}
         <ToolAccordion id="cowriter" icon={<BrainCircuit size={15} />} open={props.openToolSectionSet.has("cowriter")} title="Co-Writer" onToggle={props.onToggleToolSection}>
-          <textarea className="compact-textarea" value={props.cowriterPrompt} onChange={(e) => props.onCowriterPromptChange(e.target.value)} placeholder="Ask a grounded question across the Vault" />
+          <textarea className="compact-textarea" value={props.cowriterPrompt} onChange={(e) => props.onCowriterPromptChange(e.target.value)} placeholder="Ask a grounded question across the Vault" aria-label="Co-Writer question prompt" />
           <p className="tool-hint">Searches the whole Vault first, then uses the active Canvas as extra context when it helps.</p>
           <button className="button button-primary full-width" type="button" onClick={props.onRunCowriter}>
             {props.cowriterState === "working" ? <Loader2 size={16} /> : <Sparkles size={16} />}Ask Co-Writer
@@ -240,8 +240,8 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
         {/* Wards */}
         <ToolAccordion id="wards" icon={<ShieldCheck size={15} />} open={props.openToolSectionSet.has("wards")} title="Wards" onToggle={props.onToggleToolSection}>
           <form className="ward-form" onSubmit={props.onWardAdd}>
-            <input className="compact-input" value={props.wardInput} onChange={(e) => props.onWardInputChange(e.target.value)} placeholder="Phrase to warn on" />
-            <select className="compact-input severity-select" value={props.wardSeverity} onChange={(e) => props.onWardSeverityChange(e.target.value as WardSeverity)}>
+            <input className="compact-input" value={props.wardInput} onChange={(e) => props.onWardInputChange(e.target.value)} placeholder="Phrase to warn on" aria-label="Ward phrase" />
+            <select className="compact-input severity-select" value={props.wardSeverity} onChange={(e) => props.onWardSeverityChange(e.target.value as WardSeverity)} aria-label="Ward severity">
               <option value="warn">Warn</option><option value="block">Block</option>
             </select>
             <button className="icon-button" type="submit" aria-label="Add ward phrase" title="Add ward phrase"><Plus size={16} aria-hidden="true" /></button>
