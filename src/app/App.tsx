@@ -418,23 +418,30 @@ export function App() {
         </div>
 
         <div className="top-actions">
-          <button className="icon-button" type="button" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
-            <Settings size={17} />
+          <button className="icon-button" type="button" aria-label="Settings" title="Settings" onClick={() => setSettingsOpen(true)}>
+            <Settings size={17} aria-hidden="true" />
           </button>
-          <button className="icon-button" type="button" aria-label="Toggle theme" onClick={() => setTheme(t => t === "ivory" ? "dark" : "ivory")}>
-            {theme === "ivory" ? <Moon size={17} /> : <SunMedium size={17} />}
+          <button
+            className="icon-button"
+            type="button"
+            aria-label={theme === "ivory" ? "Switch to dark theme" : "Switch to light theme"}
+            title={theme === "ivory" ? "Switch to dark theme" : "Switch to light theme"}
+            onClick={() => setTheme(t => t === "ivory" ? "dark" : "ivory")}
+          >
+            {theme === "ivory" ? <Moon size={17} aria-hidden="true" /> : <SunMedium size={17} aria-hidden="true" />}
           </button>
           <button
             className="button button-primary" type="button"
             aria-pressed={focusMode}
+            title={focusMode ? "Exit Focus mode" : "Enter Focus mode"}
             onClick={() => setFocusMode(v => !v)}
           >
-            <Feather size={16} />
+            <Feather size={16} aria-hidden="true" />
             {focusMode ? "Exit Focus" : "Focus"}
           </button>
           {canUseNative && (
             <button className="icon-button" type="button" aria-label="New Project" title="New Project" onClick={() => setView("picker")}>
-              <Plus size={17} />
+              <Plus size={17} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -550,8 +557,14 @@ export function App() {
                     </p>
                   </div>
                 </div>
-                <button className="icon-button panel-collapse-button" type="button" aria-label="Collapse panel" onClick={() => setLeftOpen(false)}>
-                  <ChevronLeft size={16} />
+                <button
+                  className="icon-button panel-collapse-button"
+                  type="button"
+                  aria-label={`Collapse ${leftTab === "vault" ? "Vault" : "Story Plan"} panel`}
+                  title={`Collapse ${leftTab === "vault" ? "Vault" : "Story Plan"} panel`}
+                  onClick={() => setLeftOpen(false)}
+                >
+                  <ChevronLeft size={16} aria-hidden="true" />
                 </button>
               </div>
 
@@ -615,9 +628,15 @@ export function App() {
               )}
             </div>
           ) : (
-            <button className="collapsed-rail left" type="button" onClick={() => setLeftOpen(true)} aria-label="Open panel" title="Open panel">
-              {leftTab === "vault" ? <BookOpenText size={18} /> : <ScrollText size={18} />}
-              <ChevronRight size={14} />
+            <button
+              className="collapsed-rail left"
+              type="button"
+              onClick={() => setLeftOpen(true)}
+              aria-label={`Open ${leftTab === "vault" ? "Vault" : "Story Plan"} panel`}
+              title={`Open ${leftTab === "vault" ? "Vault" : "Story Plan"} panel`}
+            >
+              {leftTab === "vault" ? <BookOpenText size={18} aria-hidden="true" /> : <ScrollText size={18} aria-hidden="true" />}
+              <ChevronRight size={14} aria-hidden="true" />
             </button>
           )}
 
@@ -762,8 +781,8 @@ export function App() {
       {toast && (
         <div className="toast" role="status" aria-live="polite">
           {toast}
-          <button className="icon-button" type="button" aria-label="Close notification" onClick={() => setToast(null)} style={{ marginLeft: 8 }}>
-            <X size={14} />
+          <button className="icon-button" type="button" aria-label="Close notification" title="Close notification" onClick={() => setToast(null)} style={{ marginLeft: 8 }}>
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
       )}
