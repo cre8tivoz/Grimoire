@@ -272,4 +272,28 @@ mod tests {
 
         let _ = fs::remove_dir_all(&temp_dir);
     }
+
+    #[test]
+    fn is_safe_project_db_path_validates_correctly() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_safe_path_test_{}",
+            crate::helpers::timestamp_nanos()
+        ));
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        // Safe relative filename
+        assert!(is_safe_project_db_path(&temp_dir, "grimoire.sqlite"));
+        // Safe relative path in subfolder
+        assert!(is_safe_project_db_path(&temp_dir, "db/grimoire.sqlite"));
+        // Safe absolute path inside temp_dir
+        let valid_abs = temp_dir.join("grimoire.sqlite").to_string_lossy().to_string();
+        assert!(is_safe_project_db_path(&temp_dir, &valid_abs));
+
+        // Unsafe path with '..'
+        assert!(!is_safe_project_db_path(&temp_dir, "../secret.sqlite"));
+        // Unsafe out-of-bounds absolute path
+        assert!(!is_safe_project_db_path(&temp_dir, "/etc/passwd"));
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
 }
