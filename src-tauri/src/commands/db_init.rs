@@ -11,15 +11,6 @@ pub fn db_init(project_path: String) -> CommandResult<ProjectMetadata> {
 
 #[tauri::command]
 pub fn db_get_vault_tree(project_path: String) -> CommandResult<VaultTreeResponse> {
-    let project_dir = super::validate_project_dir(PathBuf::from(project_path))?;
-    let metadata = super::read_metadata(&project_dir)?;
-    super::initialise_database(&metadata, false)?;
-
-    let connection = Connection::open(&metadata.database_path)
-        .map_err(|error| format!("Could not open SQLite database: {error}"))?;
-    connection
-        .execute_batch("PRAGMA foreign_keys = ON;")
-        .map_err(|error| format!("Could not enable SQLite foreign keys: {error}"))?;
-
+    let connection = super::open_project_database(&project_path)?;
     read_vault_tree(&connection)
 }
