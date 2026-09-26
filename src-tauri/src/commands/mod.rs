@@ -146,7 +146,9 @@ pub fn initialise_database(
 /// Validates and resolves the database path from metadata against the project directory.
 /// Ensures the database resides strictly inside the project directory and prevents path traversal.
 pub fn resolve_database_path(project_dir: &Path, raw_db_path: &str) -> CommandResult<PathBuf> {
-    let db_path = PathBuf::from(raw_db_path);
+    // Normalize backslashes to forward slashes for cross-platform path component analysis
+    let normalized = raw_db_path.replace('\\', "/");
+    let db_path = PathBuf::from(&normalized);
 
     // Security check: reject path traversal sequences in metadata database_path
     for component in db_path.components() {

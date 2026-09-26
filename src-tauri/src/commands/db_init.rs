@@ -11,6 +11,6 @@ pub fn db_init(project_path: String) -> CommandResult<ProjectMetadata> {
 
 #[tauri::command]
 pub fn db_get_vault_tree(project_path: String) -> CommandResult<VaultTreeResponse> {
-    let connection = open_project_database(&project_path)?;
+    let connection = super::open_project_database(&project_path)?;
     read_vault_tree(&connection)
 }
