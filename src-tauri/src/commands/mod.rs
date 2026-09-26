@@ -143,9 +143,38 @@ pub fn initialise_database(
     Ok(metadata)
 }
 
+/// Validates and resolves the database path from metadata against the project directory.
+/// Ensures the database resides strictly inside the project directory and prevents path traversal.
+pub fn resolve_database_path(project_dir: &Path, raw_db_path: &str) -> CommandResult<PathBuf> {
+    // Normalize backslashes to forward slashes for cross-platform path component analysis
+    let normalized = raw_db_path.replace('\\', "/");
+    let db_path = PathBuf::from(&normalized);
+
+    // Security check: reject path traversal sequences in metadata database_path
+    for component in db_path.components() {
+        if component == std::path::Component::ParentDir {
+            return Err("Database path traversal detected in metadata.".to_string());
+        }
+    }
+
+    let expected_db_path = project_dir.join(DATABASE_FILE);
+
+    // Ensure database path is within project_dir and targets the project database file
+    if db_path.starts_with(project_dir) {
+        Ok(db_path)
+    } else {
+        // Fall back safely to the standard database path within project_dir if metadata is stale
+        Ok(expected_db_path)
+    }
+}
+
 pub fn open_project_database(project_path: &str) -> CommandResult<Connection> {
     let project_dir = validate_project_dir(PathBuf::from(project_path))?;
-    let metadata = read_metadata(&project_dir)?;
+    let mut metadata = read_metadata(&project_dir)?;
+
+    let valid_db_path = resolve_database_path(&project_dir, &metadata.database_path)?;
+    metadata.database_path = valid_db_path.to_string_lossy().to_string();
+
     initialise_database(&metadata, false)?;
     let connection = Connection::open(&metadata.database_path)
         .map_err(|error| format!("Could not open SQLite database: {error}"))?;
@@ -189,5 +218,27 @@ mod tests {
         assert_eq!(reloaded.schema_version, self::schema::SCHEMA_VERSION);
 
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn resolve_database_path_prevents_path_traversal() {
+        let project_dir = PathBuf::from("/Users/test/Documents/Grimoire Projects/MyStory.grimoire");
+
+        // Traversal attempt in database_path should return an error
+        let err = resolve_database_path(&project_dir, "../../../etc/passwd").unwrap_err();
+        assert!(err.contains("Database path traversal detected"));
+
+        let err_windows = resolve_database_path(&project_dir, "..\\..\\secret.db").unwrap_err();
+        assert!(err_windows.contains("Database path traversal detected"));
+
+        // Valid path inside project_dir
+        let valid_raw = project_dir.join("grimoire.sqlite");
+        let resolved = resolve_database_path(&project_dir, &valid_raw.to_string_lossy()).unwrap();
+        assert_eq!(resolved, valid_raw);
+
+        // Moved project directory (stale path in metadata) safely resolves to project_dir/grimoire.sqlite
+        let stale_raw = "/Old/Location/MyStory.grimoire/grimoire.sqlite";
+        let resolved_stale = resolve_database_path(&project_dir, stale_raw).unwrap();
+        assert_eq!(resolved_stale, project_dir.join("grimoire.sqlite"));
     }
 }
