@@ -145,4 +145,46 @@ describe("StoryPlanPanel accessibility", () => {
     const pinBeatBtn = screen.getByLabelText("Pin beat 1 — pinned beats will not drift");
     expect(pinBeatBtn).toHaveAttribute("title", "Pin beat 1 — pinned beats will not drift");
   });
+
+  it("renders RegeneratePanel controls with explicit label associations and accessible aria traits", async () => {
+    const mockPlanDetail: storyplanApp.StoryPlanDetail = {
+      id: "plan_1",
+      projectName: "Test Project",
+      logline: "Test logline",
+      synopsis: "Test synopsis",
+      status: "draft",
+      createdAt: "",
+      updatedAt: "",
+      scenes: [],
+    };
+
+    vi.mocked(storyplanApp.listStoryPlans).mockResolvedValue({
+      plans: [{ id: "plan_1", projectName: "Test Project", logline: "Test logline", synopsis: "Test synopsis", status: "draft", createdAt: "", updatedAt: "" }],
+    });
+    vi.mocked(storyplanApp.getStoryPlan).mockResolvedValue(mockPlanDetail);
+
+    render(
+      <StoryPlanPanel
+        projectPath="/test/project.grimoire"
+        vaultItems={[]}
+        showToast={noop}
+        onOpenLinkedItem={noop}
+        providers={["ollama"]}
+        activeProvider="ollama"
+        providerSettings={null}
+        providerModels={{ provider: "ollama", reachable: true, message: "", selectedModel: "llama3", models: [{ name: "llama3", modifiedAt: "", size: 0 }] }}
+        onProviderChange={noop}
+        onRefreshModels={noop}
+      />
+    );
+
+    const scanWardsCheckbox = await screen.findByRole("checkbox", { name: "Scan wards" });
+    expect(scanWardsCheckbox).toBeInTheDocument();
+    expect(scanWardsCheckbox).toHaveAttribute("id", "regen-scan-wards-plan-plan_1");
+
+    const generateBtn = screen.getByRole("button", { name: "Generate variants for plan" });
+    expect(generateBtn).toBeInTheDocument();
+    expect(generateBtn).toHaveAttribute("title", "Generate variants for plan");
+    expect(generateBtn).toHaveAttribute("aria-busy", "false");
+  });
 });
