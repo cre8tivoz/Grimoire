@@ -94,12 +94,32 @@ describe("SettingsPanel", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("calls onThemeChange when theme button clicked", async () => {
+  it("calls onThemeChange when theme button clicked and exposes aria-pressed state", async () => {
     const user = userEvent.setup();
     const onThemeChange = vi.fn();
-    render(<SettingsPanel {...defaults} onThemeChange={onThemeChange} />);
-    await user.click(screen.getByText("Ivory"));
+    render(<SettingsPanel {...defaults} theme="dark" onThemeChange={onThemeChange} />);
+
+    const darkBtn = screen.getByRole("button", { name: /Dark/i });
+    const ivoryBtn = screen.getByRole("button", { name: /Ivory/i });
+
+    expect(darkBtn).toHaveAttribute("aria-pressed", "true");
+    expect(ivoryBtn).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(ivoryBtn);
     expect(onThemeChange).toHaveBeenCalledWith("ivory");
+  });
+
+  it("exposes AI provider selection as a radiogroup with aria-checked states", () => {
+    render(<SettingsPanel {...defaults} activeProvider="ollama" />);
+
+    const radioGroup = screen.getByRole("radiogroup", { name: "AI Provider" });
+    expect(radioGroup).toBeInTheDocument();
+
+    const ollamaRadio = screen.getByRole("radio", { name: /OllamaLocal/i });
+    const openAiRadio = screen.getByRole("radio", { name: /OpenAICloud/i });
+
+    expect(ollamaRadio).toHaveAttribute("aria-checked", "true");
+    expect(openAiRadio).toHaveAttribute("aria-checked", "false");
   });
 
   it("disables save key button when apiKey is empty", () => {

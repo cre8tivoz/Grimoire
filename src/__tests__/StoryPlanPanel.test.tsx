@@ -22,6 +22,7 @@ vi.mock("lucide-react", () => ({
   ChevronDown: (props: any) => <span data-testid="chevron-down" {...props} />,
   ChevronRight: (props: any) => <span data-testid="chevron-right" {...props} />,
   Film: (props: any) => <span data-testid="film" {...props} />,
+  Pencil: (props: any) => <span data-testid="pencil" {...props} />,
   Link2: (props: any) => <span data-testid="link2" {...props} />,
   Plus: (props: any) => <span data-testid="plus" {...props} />,
   ScrollText: (props: any) => <span data-testid="scroll-text" {...props} />,
