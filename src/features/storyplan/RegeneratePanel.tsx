@@ -126,7 +126,7 @@ export function RegeneratePanel({
           aria-label="Refresh available models"
           title="Refresh available models"
         >
-          ↻
+          <RefreshCw size={14} aria-hidden="true" />
         </button>
       </div>
 

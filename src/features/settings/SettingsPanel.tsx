@@ -70,6 +70,7 @@ export function SettingsPanel({
             <button
               className={theme === "dark" ? "provider-button active" : "provider-button"}
               type="button"
+              aria-pressed={theme === "dark"}
               onClick={() => onThemeChange("dark")}
             >
               <span><Moon size={14} aria-hidden="true" /> Dark</span>
@@ -77,6 +78,7 @@ export function SettingsPanel({
             <button
               className={theme === "ivory" ? "provider-button active" : "provider-button"}
               type="button"
+              aria-pressed={theme === "ivory"}
               onClick={() => onThemeChange("ivory")}
             >
               <span><SunMedium size={14} aria-hidden="true" /> Ivory</span>
@@ -86,12 +88,15 @@ export function SettingsPanel({
 
         <div className="settings-section">
           <h3><Globe size={14} aria-hidden="true" /> AI Provider</h3>
-          <div className="provider-grid">
+          <div className="provider-grid" role="radiogroup" aria-label="AI Provider">
             {(["ollama", "openAi", "openAiCompatible", "anthropic", "googleAiStudio"] as AiProviderKind[]).map((p) => (
               <button
                 key={p}
                 className={activeProvider === p ? "provider-button active" : "provider-button"}
                 type="button"
+                role="radio"
+                aria-label={providerLabels[p]}
+                aria-checked={activeProvider === p}
                 onClick={() => onProviderChange(p)}
               >
                 <span>{providerLabels[p]}</span>

@@ -3,7 +3,7 @@
 // Tree: Plan → Scenes → Beats, inline editing, beat pinning (locked beats
 // are warded from regeneration), scene ↔ Vault item links, reorder.
 import {
-  ArrowDown, ArrowUp, ChevronDown, ChevronRight, Film, Link2, Plus,
+  ArrowDown, ArrowUp, ChevronDown, ChevronRight, Film, Link2, Pencil, Plus,
   ScrollText, Shield, ShieldCheck, Trash2, X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -467,7 +467,7 @@ export function StoryPlanPanel({
                         <ArrowDown size={12} aria-hidden="true" />
                       </button>
                       <button type="button" aria-label={`Edit scene "${scene.title}"`} title={`Edit scene "${scene.title}"`} onClick={() => openSceneEditor(scene)}>
-                        ✎
+                        <Pencil size={12} aria-hidden="true" />
                       </button>
                       <button type="button" aria-label={`Delete scene "${scene.title}"`} title={`Delete scene "${scene.title}"`} onClick={() => handleDeleteScene(scene.id, scene.title)}>
                         <X size={12} aria-hidden="true" />
@@ -558,7 +558,9 @@ export function StoryPlanPanel({
                                     onClick={() => handleReorder("beat", beat.id, "down")}>
                                     <ArrowDown size={12} aria-hidden="true" />
                                   </button>
-                                  <button type="button" aria-label={`Edit beat ${beatIndex + 1}`} title={`Edit beat ${beatIndex + 1}`} onClick={() => openBeatEditor(beat)}>✎</button>
+                                  <button type="button" aria-label={`Edit beat ${beatIndex + 1}`} title={`Edit beat ${beatIndex + 1}`} onClick={() => openBeatEditor(beat)}>
+                                    <Pencil size={12} aria-hidden="true" />
+                                  </button>
                                   <button type="button" aria-label={`Delete beat ${beatIndex + 1}`} title={`Delete beat ${beatIndex + 1}`} onClick={() => handleDeleteBeat(beat.id)}>
                                     <X size={12} aria-hidden="true" />
                                   </button>
