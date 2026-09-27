@@ -151,8 +151,9 @@ export function RegeneratePanel({
           value={candidateCount}
           onChange={(e) => setCandidateCount(Math.max(1, Math.min(5, Number(e.target.value) || 1)))}
         />
-        <label className="sp-checkbox-label">
+        <label className="sp-checkbox-label" htmlFor={`regen-scan-wards-${targetKind}-${targetId}`}>
           <input
+            id={`regen-scan-wards-${targetKind}-${targetId}`}
             type="checkbox"
             checked={scanWards}
             onChange={(e) => setScanWards(e.target.checked)}
@@ -166,6 +167,9 @@ export function RegeneratePanel({
           className="button button-primary"
           type="button"
           disabled={busy || !ready}
+          aria-busy={busy}
+          aria-label={`Generate variants for ${targetKind}`}
+          title={`Generate variants for ${targetKind}`}
           onClick={() => void handleRegenerate()}
         >
           {busy ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Send size={14} aria-hidden="true" />}
