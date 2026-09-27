@@ -95,6 +95,7 @@ export function SettingsPanel({
                 className={activeProvider === p ? "provider-button active" : "provider-button"}
                 type="button"
                 role="radio"
+                aria-label={providerLabels[p]}
                 aria-checked={activeProvider === p}
                 onClick={() => onProviderChange(p)}
               >

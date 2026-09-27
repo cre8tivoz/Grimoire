@@ -115,8 +115,8 @@ describe("SettingsPanel", () => {
     const radioGroup = screen.getByRole("radiogroup", { name: "AI Provider" });
     expect(radioGroup).toBeInTheDocument();
 
-    const ollamaRadio = screen.getByRole("radio", { name: /OllamaLocal/i });
-    const openAiRadio = screen.getByRole("radio", { name: /OpenAICloud/i });
+    const ollamaRadio = screen.getByRole("radio", { name: "Ollama" });
+    const openAiRadio = screen.getByRole("radio", { name: "OpenAI" });
 
     expect(ollamaRadio).toHaveAttribute("aria-checked", "true");
     expect(openAiRadio).toHaveAttribute("aria-checked", "false");
