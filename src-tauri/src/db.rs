@@ -319,6 +319,20 @@ pub fn next_sort_order(
     parent_column: &str,
     parent_id: &str,
 ) -> CommandResult<i64> {
+    match (table, parent_column) {
+        ("halls", "wing_id")
+        | ("rooms", "hall_id")
+        | ("drawers", "room_id")
+        | ("items", "drawer_id")
+        | ("story_scenes", "plan_id")
+        | ("story_beats", "scene_id") => {}
+        _ => {
+            return Err(format!(
+                "Invalid table or parent column for sort order calculation: {table}.{parent_column}"
+            ))
+        }
+    }
+
     let query =
         format!("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM {table} WHERE {parent_column} = ?1");
     connection
@@ -574,6 +588,11 @@ pub fn ensure_hierarchy_node(
     id: &str,
     label: &str,
 ) -> CommandResult<()> {
+    match table {
+        "wings" | "halls" | "rooms" | "drawers" => {}
+        _ => return Err(format!("Invalid hierarchy table: {table}")),
+    }
+
     let query = format!("SELECT COUNT(*) FROM {table} WHERE id = ?1");
     let count: i64 = connection
         .query_row(&query, params![id], |row| row.get(0))
@@ -781,6 +800,32 @@ mod tests {
         let conn = test_db();
         let result = ensure_hierarchy_node(&conn, "wings", "nonexistent", "wing");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn ensure_hierarchy_node_invalid_table() {
+        let conn = test_db();
+        let result = ensure_hierarchy_node(&conn, "sqlite_master", "w1", "wing");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid hierarchy table"));
+
+        let injection_attempt = "wings; DROP TABLE wings; --";
+        let result_injection = ensure_hierarchy_node(&conn, injection_attempt, "w1", "wing");
+        assert!(result_injection.is_err());
+        assert!(result_injection.unwrap_err().contains("Invalid hierarchy table"));
+    }
+
+    #[test]
+    fn next_sort_order_invalid_table() {
+        let conn = test_db();
+        let result = next_sort_order(&conn, "wings", "id", "w1");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid table or parent column"));
+
+        let injection_attempt = "drawers; DROP TABLE drawers; --";
+        let result_injection = next_sort_order(&conn, injection_attempt, "room_id", "r1");
+        assert!(result_injection.is_err());
+        assert!(result_injection.unwrap_err().contains("Invalid table or parent column"));
     }
 
     #[test]

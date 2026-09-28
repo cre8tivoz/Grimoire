@@ -757,6 +757,15 @@ fn swap_sort_order(
     id: &str,
     direction: &str,
 ) -> CommandResult<()> {
+    match (table, parent_column) {
+        ("story_scenes", "plan_id") | ("story_beats", "scene_id") => {}
+        _ => {
+            return Err(format!(
+                "Invalid table or parent column for swap_sort_order: {table}.{parent_column}"
+            ))
+        }
+    }
+
     let (current_order, parent_id): (i64, String) = connection
         .query_row(
             &format!("SELECT sort_order, {parent_column} FROM {table} WHERE id = ?1"),
