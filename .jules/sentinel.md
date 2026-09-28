@@ -7,3 +7,8 @@
 **Vulnerability:** Untrusted `.grimoire` project metadata (`metadata.json`) could specify an out-of-bounds `database_path` (e.g., `/etc/passwd` or `../../etc/passwd`), causing SQLite database initialization to attempt opening/migrating arbitrary file locations.
 **Learning:** Deserialized file paths in project metadata must be validated using component inspection (`Component::ParentDir`) and path canonicalization against the root project directory before opening.
 **Prevention:** Always sanitize deserialized file paths in `read_metadata` and enforce boundary checks using `is_safe_project_db_path` in `initialise_database`.
+
+## 2026-10-15 - SQL Injection via Unparameterized Table Names in Helper Functions
+**Vulnerability:** Helper functions like `ensure_hierarchy_node`, `next_sort_order`, and `swap_sort_order` interpolated table or column parameters directly into SQL queries using `format!`.
+**Learning:** Dynamic table and column identifiers in SQLite queries cannot be parameterized with `?` or `params!`. If string interpolation is required for table or column names, inputs must be strictly validated against an explicit whitelist of allowed identifiers.
+**Prevention:** Always validate string-interpolated table or column names using strict `match` expression whitelists before constructing SQL queries in Rust DB functions.
