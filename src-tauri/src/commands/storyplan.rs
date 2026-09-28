@@ -757,40 +757,44 @@ fn swap_sort_order(
     id: &str,
     direction: &str,
 ) -> CommandResult<()> {
-    match (table, parent_column) {
-        ("story_scenes", "plan_id") | ("story_beats", "scene_id") => {}
-        _ => {
-            return Err(format!(
-                "Invalid table or parent column for swap_sort_order: {table}.{parent_column}"
-            ))
-        }
-    }
+    let (select_sql, neighbour_up_sql, neighbour_down_sql, update_sql) =
+        match (table, parent_column) {
+            ("story_scenes", "plan_id") => (
+                "SELECT sort_order, plan_id FROM story_scenes WHERE id = ?1",
+                "SELECT id, sort_order FROM story_scenes WHERE plan_id = ?1 AND sort_order < ?2 ORDER BY sort_order DESC LIMIT 1",
+                "SELECT id, sort_order FROM story_scenes WHERE plan_id = ?1 AND sort_order > ?2 ORDER BY sort_order ASC LIMIT 1",
+                "UPDATE story_scenes SET sort_order = ?1, updated_at = ?3 WHERE id = ?2",
+            ),
+            ("story_beats", "scene_id") => (
+                "SELECT sort_order, scene_id FROM story_beats WHERE id = ?1",
+                "SELECT id, sort_order FROM story_beats WHERE scene_id = ?1 AND sort_order < ?2 ORDER BY sort_order DESC LIMIT 1",
+                "SELECT id, sort_order FROM story_beats WHERE scene_id = ?1 AND sort_order > ?2 ORDER BY sort_order ASC LIMIT 1",
+                "UPDATE story_beats SET sort_order = ?1, updated_at = ?3 WHERE id = ?2",
+            ),
+            _ => {
+                return Err(format!(
+                    "Invalid table or parent column for swap_sort_order: {table}.{parent_column}"
+                ))
+            }
+        };
 
     if direction != "up" && direction != "down" {
         return Err(format!("Invalid direction for swap_sort_order: {direction}"));
     }
 
     let (current_order, parent_id): (i64, String) = connection
-        .query_row(
-            &format!("SELECT sort_order, {parent_column} FROM {table} WHERE id = ?1"),
-            params![id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
+        .query_row(select_sql, params![id], |row| Ok((row.get(0)?, row.get(1)?)))
         .map_err(|_| format!("Could not find that {table} row."))?;
 
     let neighbour = if direction == "up" {
         connection.query_row(
-            &format!(
-                "SELECT id, sort_order FROM {table} WHERE {parent_column} = ?1 AND sort_order < ?2 ORDER BY sort_order DESC LIMIT 1"
-            ),
+            neighbour_up_sql,
             params![parent_id, current_order],
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
         )
     } else {
         connection.query_row(
-            &format!(
-                "SELECT id, sort_order FROM {table} WHERE {parent_column} = ?1 AND sort_order > ?2 ORDER BY sort_order ASC LIMIT 1"
-            ),
+            neighbour_down_sql,
             params![parent_id, current_order],
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
         )
@@ -802,13 +806,13 @@ fn swap_sort_order(
 
     connection
         .execute(
-            &format!("UPDATE {table} SET sort_order = ?1, updated_at = ?3 WHERE id = ?2"),
+            update_sql,
             params![neighbour_order, id, timestamp()],
         )
         .map_err(|error| format!("Could not reorder: {error}"))?;
     connection
         .execute(
-            &format!("UPDATE {table} SET sort_order = ?1, updated_at = ?3 WHERE id = ?2"),
+            update_sql,
             params![current_order, neighbour_id, timestamp()],
         )
         .map_err(|error| format!("Could not reorder: {error}"))?;
