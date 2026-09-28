@@ -133,4 +133,27 @@ describe("CoWriterPanel Accessibility", () => {
     expect(screen.getByLabelText("Ward phrase")).toBeInTheDocument();
     expect(screen.getByLabelText("Ward severity")).toBeInTheDocument();
   });
+
+  it("disables async operation buttons and sets aria-busy when in working state", () => {
+    render(
+      <CoWriterPanel
+        {...defaultProps}
+        importState="working"
+        engineState="working"
+        cowriterState="working"
+      />
+    );
+
+    const importBtn = screen.getByRole("button", { name: /import paste/i });
+    expect(importBtn).toBeDisabled();
+    expect(importBtn).toHaveAttribute("aria-busy", "true");
+
+    const refreshBtn = screen.getByRole("button", { name: /refresh models/i });
+    expect(refreshBtn).toBeDisabled();
+    expect(refreshBtn).toHaveAttribute("aria-busy", "true");
+
+    const askBtn = screen.getByRole("button", { name: /ask co-writer/i });
+    expect(askBtn).toBeDisabled();
+    expect(askBtn).toHaveAttribute("aria-busy", "true");
+  });
 });

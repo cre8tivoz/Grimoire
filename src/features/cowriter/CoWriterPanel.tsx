@@ -141,14 +141,14 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
       <div className="panel-scroll tools-scroll">
 
         {/* Feed */}
-        <ToolAccordion id="feed" icon={<Upload size={15} />} open={props.openToolSectionSet.has("feed")} title="Feed" onToggle={props.onToggleToolSection}>
+        <ToolAccordion id="feed" icon={<Upload size={15} aria-hidden="true" />} open={props.openToolSectionSet.has("feed")} title="Feed" onToggle={props.onToggleToolSection}>
           <form className="tool-form" onSubmit={props.onPasteImport}>
             <input className="compact-input" value={props.importTitle} onChange={(e) => props.onImportTitleChange(e.target.value)} placeholder="Import title" aria-label="Import title" />
             <textarea className="compact-textarea" value={props.importBody} onChange={(e) => props.onImportBodyChange(e.target.value)} placeholder="Paste text or Markdown, up to 10,000 words" aria-label="Import content" />
             <p className="tool-hint">Import multiple .md, .markdown, or .txt files. Each file is capped at 10,000 words; add more chunks later if needed.</p>
             <div className="inline-actions">
-              <button className="button button-primary" type="submit" disabled={props.importState === "working"}>
-                {props.importState === "working" ? <Loader2 size={16} /> : <Clipboard size={16} />}Import Paste
+              <button className="button button-primary" type="submit" disabled={props.importState === "working"} aria-busy={props.importState === "working"}>
+                {props.importState === "working" ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Clipboard size={16} aria-hidden="true" />}Import Paste
               </button>
               <label className="file-button"><FileText size={16} aria-hidden="true" />Files<input type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" multiple aria-label="Upload files" onChange={(e) => props.onFileImport(e.currentTarget.files)} /></label>
             </div>
@@ -158,7 +158,7 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
         </ToolAccordion>
 
         {/* Retrieval */}
-        <ToolAccordion id="retrieval" icon={<Search size={15} />} open={props.openToolSectionSet.has("retrieval")} title="Retrieval" onToggle={props.onToggleToolSection}>
+        <ToolAccordion id="retrieval" icon={<Search size={15} aria-hidden="true" />} open={props.openToolSectionSet.has("retrieval")} title="Retrieval" onToggle={props.onToggleToolSection}>
           <div className="retrieval-card" role="status" aria-live="polite">
             {retrievalLabels(props.cowriterState, props.cowriterStatus).map((step, i) => (
               <p key={`${step}-${i}`} className={i === 0 ? "active-step" : undefined}><Sparkles size={14} aria-hidden="true" />{step}</p>
@@ -168,12 +168,12 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
         </ToolAccordion>
 
         {/* Engine */}
-        <ToolAccordion id="engine" icon={<WandSparkles size={15} />} open={props.openToolSectionSet.has("engine")} title="Engine" onToggle={props.onToggleToolSection}>
+        <ToolAccordion id="engine" icon={<WandSparkles size={15} aria-hidden="true" />} open={props.openToolSectionSet.has("engine")} title="Engine" onToggle={props.onToggleToolSection}>
           <div className="engine-row">
-            <button className="button button-secondary" type="button" onClick={props.onRefreshEngine}>
-              {props.engineState === "working" ? <Loader2 size={16} /> : <BrainCircuit size={16} />}Refresh Models
+            <button className="button button-secondary" type="button" onClick={props.onRefreshEngine} disabled={props.engineState === "working"} aria-busy={props.engineState === "working"}>
+              {props.engineState === "working" ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <BrainCircuit size={16} aria-hidden="true" />}Refresh Models
             </button>
-            <button className="button button-secondary" type="button" onClick={props.onProviderTest}><Sparkles size={16} />Test Provider</button>
+            <button className="button button-secondary" type="button" onClick={props.onProviderTest}><Sparkles size={16} aria-hidden="true" />Test Provider</button>
             <span className={providerReady(props.activeProvider, props.activeProviderSettings, props.providerModels) ? "engine-dot online" : "engine-dot"} />
           </div>
           <div className="provider-grid" role="radiogroup" aria-label="AI provider">
@@ -201,8 +201,8 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
               <form className="tool-form" onSubmit={props.onApiKeySave}>
                 <input className="compact-input" type="password" autoComplete="off" value={props.apiKeyDraft} onChange={(e) => props.onApiKeyDraftChange(e.target.value)} placeholder={`Paste ${providerLabels[props.activeProvider]} API key`} aria-label={`${providerLabels[props.activeProvider]} API key`} />
                 <div className="inline-actions">
-                  <button className="button button-primary" type="submit" disabled={!props.apiKeyDraft.trim()}><ShieldCheck size={16} />Save Key</button>
-                  <button className="button button-secondary" type="button" disabled={!props.activeProviderSettings?.apiKeyPresent} onClick={props.onApiKeyDelete}><Trash2 size={16} />Delete Key</button>
+                  <button className="button button-primary" type="submit" disabled={!props.apiKeyDraft.trim()}><ShieldCheck size={16} aria-hidden="true" />Save Key</button>
+                  <button className="button button-secondary" type="button" disabled={!props.activeProviderSettings?.apiKeyPresent} onClick={props.onApiKeyDelete}><Trash2 size={16} aria-hidden="true" />Delete Key</button>
                 </div>
               </form>
               {props.activeProvider === "openAiCompatible" ? <input className="compact-input" value={props.baseUrlDraft} onChange={(e) => props.onBaseUrlDraftChange(e.target.value)} placeholder="Base URL, e.g. https://api.example.com" aria-label="Base URL" /> : null}
@@ -210,16 +210,16 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
           ) : null}
           <form className="tool-form" onSubmit={props.onEngineSettingsSave}>
             <input className="compact-input" value={props.modelDraft} onChange={(e) => props.onModelDraftChange(e.target.value)} placeholder={props.activeProvider === "ollama" ? "Choose a detected local model" : "Model ID"} aria-label={props.activeProvider === "ollama" ? "Local model name" : "Model ID"} />
-            <button className="button button-secondary full-width" type="submit"><Check size={16} />Save Engine Settings</button>
+            <button className="button button-secondary full-width" type="submit"><Check size={16} aria-hidden="true" />Save Engine Settings</button>
           </form>
         </ToolAccordion>
 
         {/* Co-Writer */}
-        <ToolAccordion id="cowriter" icon={<BrainCircuit size={15} />} open={props.openToolSectionSet.has("cowriter")} title="Co-Writer" onToggle={props.onToggleToolSection}>
+        <ToolAccordion id="cowriter" icon={<BrainCircuit size={15} aria-hidden="true" />} open={props.openToolSectionSet.has("cowriter")} title="Co-Writer" onToggle={props.onToggleToolSection}>
           <textarea className="compact-textarea" value={props.cowriterPrompt} onChange={(e) => props.onCowriterPromptChange(e.target.value)} placeholder="Ask a grounded question across the Vault" aria-label="Co-Writer question prompt" />
           <p className="tool-hint">Searches the whole Vault first, then uses the active Canvas as extra context when it helps.</p>
-          <button className="button button-primary full-width" type="button" onClick={props.onRunCowriter}>
-            {props.cowriterState === "working" ? <Loader2 size={16} /> : <Sparkles size={16} />}Ask Co-Writer
+          <button className="button button-primary full-width" type="button" onClick={props.onRunCowriter} disabled={props.cowriterState === "working"} aria-busy={props.cowriterState === "working"}>
+            {props.cowriterState === "working" ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}Ask Co-Writer
           </button>
           {props.cowriterError ? <p className="inline-error">{props.cowriterError}</p> : null}
           {props.cowriterAnswer ? (
@@ -238,7 +238,7 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
         </ToolAccordion>
 
         {/* Wards */}
-        <ToolAccordion id="wards" icon={<ShieldCheck size={15} />} open={props.openToolSectionSet.has("wards")} title="Wards" onToggle={props.onToggleToolSection}>
+        <ToolAccordion id="wards" icon={<ShieldCheck size={15} aria-hidden="true" />} open={props.openToolSectionSet.has("wards")} title="Wards" onToggle={props.onToggleToolSection}>
           <form className="ward-form" onSubmit={props.onWardAdd}>
             <input className="compact-input" value={props.wardInput} onChange={(e) => props.onWardInputChange(e.target.value)} placeholder="Phrase to warn on" aria-label="Ward phrase" />
             <select className="compact-input severity-select" value={props.wardSeverity} onChange={(e) => props.onWardSeverityChange(e.target.value as WardSeverity)} aria-label="Ward severity">
@@ -258,7 +258,7 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
         </ToolAccordion>
 
         {/* About */}
-        <ToolAccordion id="about" icon={<Info size={15} />} open={props.openToolSectionSet.has("about")} title="About" onToggle={props.onToggleToolSection}>
+        <ToolAccordion id="about" icon={<Info size={15} aria-hidden="true" />} open={props.openToolSectionSet.has("about")} title="About" onToggle={props.onToggleToolSection}>
           <p>Grimoire is an independent Witch Daddy Labs project. The Vault memory model is local-first, project-contained, and designed for private world-building.</p>
         </ToolAccordion>
       </div>
