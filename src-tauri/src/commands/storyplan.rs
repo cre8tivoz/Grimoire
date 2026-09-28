@@ -766,6 +766,10 @@ fn swap_sort_order(
         }
     }
 
+    if direction != "up" && direction != "down" {
+        return Err(format!("Invalid direction for swap_sort_order: {direction}"));
+    }
+
     let (current_order, parent_id): (i64, String) = connection
         .query_row(
             &format!("SELECT sort_order, {parent_column} FROM {table} WHERE id = ?1"),
@@ -2020,5 +2024,69 @@ mod tests {
         // Locked beats are flagged immutable inside the current-beats section.
         assert!(prompt.contains("(LOCKED) Mara slides the ledger across."));
         assert!(prompt.contains("tighten the dialogue"));
+    }
+
+    #[test]
+    fn swap_sort_order_invalid_table_or_column() {
+        let conn = test_db();
+        insert_plan(&conn, "plan_1");
+        insert_scene(&conn, "scene_1", "plan_1");
+
+        // Disallowed table name or SQL injection attempt
+        let result = swap_sort_order(&conn, "story_plans", "id", "plan_1", "up");
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .contains("Invalid table or parent column"));
+
+        let injection = "story_scenes; DROP TABLE story_scenes; --";
+        let result_injection = swap_sort_order(&conn, injection, "plan_id", "scene_1", "up");
+        assert!(result_injection.is_err());
+        assert!(result_injection
+            .unwrap_err()
+            .contains("Invalid table or parent column"));
+    }
+
+    #[test]
+    fn swap_sort_order_invalid_direction() {
+        let conn = test_db();
+        insert_plan(&conn, "plan_1");
+        insert_scene(&conn, "scene_1", "plan_1");
+
+        let result = swap_sort_order(&conn, "story_scenes", "plan_id", "scene_1", "sideways");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid direction"));
+    }
+
+    #[test]
+    fn swap_sort_order_reorders_items() {
+        let conn = test_db();
+        insert_plan(&conn, "plan_1");
+        conn.execute(
+            "INSERT INTO story_scenes (id, plan_id, title, sort_order, created_at, updated_at) VALUES ('scene_1', 'plan_1', 'Scene 1', 0, '1', '1')",
+            [],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO story_scenes (id, plan_id, title, sort_order, created_at, updated_at) VALUES ('scene_2', 'plan_1', 'Scene 2', 1, '1', '1')",
+            [],
+        ).unwrap();
+
+        // Swap scene_2 up (scene_2 sort_order: 1 -> 0, scene_1 sort_order: 0 -> 1)
+        swap_sort_order(&conn, "story_scenes", "plan_id", "scene_2", "up").unwrap();
+
+        let order1: i64 = conn.query_row("SELECT sort_order FROM story_scenes WHERE id = 'scene_1'", [], |r| r.get(0)).unwrap();
+        let order2: i64 = conn.query_row("SELECT sort_order FROM story_scenes WHERE id = 'scene_2'", [], |r| r.get(0)).unwrap();
+
+        assert_eq!(order1, 1);
+        assert_eq!(order2, 0);
+
+        // Swap scene_2 down back to original
+        swap_sort_order(&conn, "story_scenes", "plan_id", "scene_2", "down").unwrap();
+
+        let order1_after: i64 = conn.query_row("SELECT sort_order FROM story_scenes WHERE id = 'scene_1'", [], |r| r.get(0)).unwrap();
+        let order2_after: i64 = conn.query_row("SELECT sort_order FROM story_scenes WHERE id = 'scene_2'", [], |r| r.get(0)).unwrap();
+
+        assert_eq!(order1_after, 0);
+        assert_eq!(order2_after, 1);
     }
 }
