@@ -41,6 +41,13 @@ pub fn ai_save_provider_settings(
     if let Some(base_url) = request.base_url.as_deref() {
         let value = base_url.trim();
         if !value.is_empty() {
+            // Security validation: restrict provider base_url to http/https protocols and reject control characters
+            if !(value.starts_with("http://") || value.starts_with("https://")) {
+                return Err("Base URL must use http:// or https:// protocol.".to_string());
+            }
+            if value.contains('\n') || value.contains('\r') || value.contains(' ') {
+                return Err("Base URL cannot contain spaces or newline characters.".to_string());
+            }
             set_setting(
                 &connection,
                 &provider_setting_key(request.provider, "baseUrl"),
@@ -51,6 +58,9 @@ pub fn ai_save_provider_settings(
     if let Some(model) = request.selected_model.as_deref() {
         let value = model.trim();
         if !value.is_empty() {
+            if value.contains('\n') || value.contains('\r') {
+                return Err("Model name cannot contain newline characters.".to_string());
+            }
             set_setting(
                 &connection,
                 &provider_setting_key(request.provider, "selectedModel"),
@@ -76,6 +86,10 @@ pub fn ai_set_api_key(request: AiApiKeyRequest) -> CommandResult<AiProviderSetti
     let api_key = request.api_key.trim();
     if api_key.is_empty() {
         return Err("API key cannot be empty.".to_string());
+    }
+    // Security validation: reject newlines in API keys to prevent HTTP header injection
+    if api_key.contains('\n') || api_key.contains('\r') {
+        return Err("API key cannot contain newline characters.".to_string());
     }
     llm::set_api_key_secret(&request.project_path, request.provider, api_key)?;
     set_setting(
@@ -296,5 +310,59 @@ mod tests {
             )
             .unwrap();
         assert!(ensure_cloud_provider_ready(&connection, AiProviderKind::OpenAi).is_ok());
+    }
+
+    #[test]
+    fn ai_save_provider_settings_rejects_invalid_base_url() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_ai_url_test_{}.grimoire",
+            crate::helpers::timestamp_nanos()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let metadata = crate::commands::load_or_create_metadata(&temp_dir, "Test Project").unwrap();
+        crate::commands::initialise_database(&metadata, false).unwrap();
+
+        // Rejects non-http/https schemes
+        let req = AiProviderSettingsSaveRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            provider: AiProviderKind::OpenAiCompatible,
+            base_url: Some("file:///etc/passwd".to_string()),
+            selected_model: None,
+        };
+        let err = ai_save_provider_settings(req).unwrap_err();
+        assert!(err.contains("http:// or https://"));
+
+        // Rejects whitespace or newlines in base_url
+        let req2 = AiProviderSettingsSaveRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            provider: AiProviderKind::OpenAiCompatible,
+            base_url: Some("https://example.com/ api\n".to_string()),
+            selected_model: None,
+        };
+        let err2 = ai_save_provider_settings(req2).unwrap_err();
+        assert!(err2.contains("spaces or newline characters"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn ai_set_api_key_rejects_newlines() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_ai_key_test_{}.grimoire",
+            crate::helpers::timestamp_nanos()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let metadata = crate::commands::load_or_create_metadata(&temp_dir, "Test Project").unwrap();
+        crate::commands::initialise_database(&metadata, false).unwrap();
+
+        let req = AiApiKeyRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            provider: AiProviderKind::OpenAi,
+            api_key: "sk-proj-1234\r\nInjectedHeader: value".to_string(),
+        };
+        let err = ai_set_api_key(req).unwrap_err();
+        assert!(err.contains("newline characters"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
