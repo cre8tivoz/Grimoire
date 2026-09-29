@@ -5,3 +5,7 @@
 ## 2025-05-18 - Context-Aware ARIA Labels & Native Tooltips in List Rows
 **Learning:** Generic action labels (e.g. 'Edit scene' or 'Move beat up') in repeating list rows prevent screen readers from identifying which item an action applies to. Pairing context-specific `aria-label`s with matching `title` attributes and `aria-hidden="true"` on inner icons provides clear screen reader context and native browser tooltips without custom CSS/JS tooltips.
 **Action:** When adding icon-only action rows for list items (scenes, beats, candidates, wards), include the item title or index in `aria-label` and `title`.
+
+## 2025-05-18 - Async Action Buttons & Animated Spinner States
+**Learning:** Async trigger buttons (e.g. in panel headers or tool drawers) require `disabled={state === "working"}` and `aria-busy={state === "working"}` to prevent duplicate invocations and signal pending status to screen readers, while loading icons must feature `className="animate-spin"` and `aria-hidden="true"`.
+**Action:** Ensure all async panel submit and refresh buttons disable themselves during execution and pair `aria-busy` with animated `Loader2` spinners.
