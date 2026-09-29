@@ -2094,4 +2094,37 @@ mod tests {
         assert_eq!(order1_after, 0);
         assert_eq!(order2_after, 1);
     }
+
+    #[test]
+    fn swap_sort_order_reorders_beats() {
+        let conn = test_db();
+        insert_plan(&conn, "plan_1");
+        insert_scene(&conn, "scene_1", "plan_1");
+        conn.execute(
+            "INSERT INTO story_beats (id, scene_id, beat_type, content, locked, sort_order, created_at, updated_at) VALUES ('beat_1', 'scene_1', 'action', 'Beat 1', 0, 0, '1', '1')",
+            [],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO story_beats (id, scene_id, beat_type, content, locked, sort_order, created_at, updated_at) VALUES ('beat_2', 'scene_1', 'action', 'Beat 2', 0, 1, '1', '1')",
+            [],
+        ).unwrap();
+
+        // Swap beat_2 up (beat_2 sort_order: 1 -> 0, beat_1 sort_order: 0 -> 1)
+        swap_sort_order(&conn, "story_beats", "scene_id", "beat_2", "up").unwrap();
+
+        let order1: i64 = conn.query_row("SELECT sort_order FROM story_beats WHERE id = 'beat_1'", [], |r| r.get(0)).unwrap();
+        let order2: i64 = conn.query_row("SELECT sort_order FROM story_beats WHERE id = 'beat_2'", [], |r| r.get(0)).unwrap();
+
+        assert_eq!(order1, 1);
+        assert_eq!(order2, 0);
+
+        // Swap beat_2 down back to original
+        swap_sort_order(&conn, "story_beats", "scene_id", "beat_2", "down").unwrap();
+
+        let order1_after: i64 = conn.query_row("SELECT sort_order FROM story_beats WHERE id = 'beat_1'", [], |r| r.get(0)).unwrap();
+        let order2_after: i64 = conn.query_row("SELECT sort_order FROM story_beats WHERE id = 'beat_2'", [], |r| r.get(0)).unwrap();
+
+        assert_eq!(order1_after, 0);
+        assert_eq!(order2_after, 1);
+    }
 }
