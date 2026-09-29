@@ -145,6 +145,12 @@ describe("StoryPlanPanel accessibility", () => {
 
     const pinBeatBtn = screen.getByLabelText("Pin beat 1 — pinned beats will not drift");
     expect(pinBeatBtn).toHaveAttribute("title", "Pin beat 1 — pinned beats will not drift");
+
+    const newBeatBtn = screen.getByLabelText('New beat in "The Meeting"');
+    expect(newBeatBtn).toHaveAttribute("title", 'New beat in "The Meeting"');
+
+    const newSceneBtn = screen.getByLabelText('New scene in "Test Project"');
+    expect(newSceneBtn).toHaveAttribute("title", 'New scene in "Test Project"');
   });
 
   it("renders RegeneratePanel controls with explicit label associations and accessible aria traits", async () => {
