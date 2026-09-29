@@ -1261,6 +1261,7 @@ fn build_regeneration_user_prompt(
 pub fn storyplan_regenerate(
     request: StoryRegenerateRequest,
 ) -> CommandResult<StoryRegenerateResponse> {
+    crate::llm::validate_model_name(&request.model)?;
     let connection = open_project_database(&request.project_path)?;
     let target_kind = request.target_kind.trim().to_lowercase();
 

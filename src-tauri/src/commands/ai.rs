@@ -58,9 +58,7 @@ pub fn ai_save_provider_settings(
     if let Some(model) = request.selected_model.as_deref() {
         let value = model.trim();
         if !value.is_empty() {
-            if value.contains('\n') || value.contains('\r') {
-                return Err("Model name cannot contain newline characters.".to_string());
-            }
+            llm::validate_model_name(value)?;
             set_setting(
                 &connection,
                 &provider_setting_key(request.provider, "selectedModel"),
@@ -189,6 +187,7 @@ pub fn ai_chat(request: AiChatRequest) -> CommandResult<AiChatResponse> {
 }
 
 pub fn ai_chat_inner(request: AiChatRequest) -> CommandResult<AiChatResponse> {
+    llm::validate_model_name(&request.model)?;
     let connection = open_project_database(&request.project_path)?;
     ensure_cloud_provider_ready(&connection, request.provider)?;
     match request.provider {
@@ -230,6 +229,7 @@ pub fn ensure_cloud_provider_ready(
 
 #[tauri::command]
 pub fn chat_with_vault(request: ChatWithVaultRequest) -> CommandResult<ChatWithVaultResponse> {
+    llm::validate_model_name(&request.model)?;
     let connection = open_project_database(&request.project_path)?;
     ensure_cloud_provider_ready(&connection, request.provider)?;
     llm::chat_with_vault(&connection, &request)
