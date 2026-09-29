@@ -629,10 +629,9 @@ mod tests {
     use super::*;
 
     fn test_db() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
+        let mut conn = Connection::open_in_memory().unwrap();
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
-        conn.execute_batch(crate::commands::schema::INITIAL_SCHEMA)
-            .unwrap();
+        crate::commands::schema::run_migrations(&mut conn).unwrap();
         conn
     }
 
