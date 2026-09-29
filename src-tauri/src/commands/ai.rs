@@ -229,6 +229,7 @@ pub fn ensure_cloud_provider_ready(
 
 #[tauri::command]
 pub fn chat_with_vault(request: ChatWithVaultRequest) -> CommandResult<ChatWithVaultResponse> {
+    llm::validate_model_name(&request.model)?;
     let connection = open_project_database(&request.project_path)?;
     ensure_cloud_provider_ready(&connection, request.provider)?;
     llm::chat_with_vault(&connection, &request)
