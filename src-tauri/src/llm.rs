@@ -70,6 +70,26 @@ pub fn select_ollama_model(previous: Option<String>, model_names: &[String]) -> 
     }
 }
 
+/// Security validation: ensure model names do not contain spaces, control
+/// characters, newlines, path traversal (`..`), URL query/fragment injection,
+/// or leading/trailing slashes.
+pub fn validate_model_name(model: &str) -> CommandResult<()> {
+    let trimmed = model.trim();
+    if trimmed.is_empty() {
+        return Err("Model name cannot be empty.".to_string());
+    }
+    if trimmed.contains('\n') || trimmed.contains('\r') || trimmed.contains(' ') || trimmed.contains('\t') {
+        return Err("Model name cannot contain spaces or newline characters.".to_string());
+    }
+    if trimmed.contains("..") || trimmed.contains('?') || trimmed.contains('#') {
+        return Err("Model name contains invalid characters.".to_string());
+    }
+    if trimmed.starts_with('/') || trimmed.ends_with('/') {
+        return Err("Model name cannot start or end with a slash.".to_string());
+    }
+    Ok(())
+}
+
 fn secret_account(project_path: &str, provider: AiProviderKind) -> String {
     let mut project_hash: u64 = 1469598103934665603;
     for byte in project_path.as_bytes() {
@@ -1125,5 +1145,29 @@ mod tests {
     fn select_ollama_model_returns_none_for_empty() {
         let result = select_ollama_model(None, &[]);
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn validate_model_name_accepts_valid_names() {
+        assert!(validate_model_name("gpt-5-mini").is_ok());
+        assert!(validate_model_name("claude-sonnet-4-5").is_ok());
+        assert!(validate_model_name("gemini-3-flash-preview").is_ok());
+        assert!(validate_model_name("library/llama3").is_ok());
+        assert!(validate_model_name("qwen2.5:7b").is_ok());
+    }
+
+    #[test]
+    fn validate_model_name_rejects_invalid_names() {
+        assert!(validate_model_name("").is_err());
+        assert!(validate_model_name("   ").is_err());
+        assert!(validate_model_name("model name").is_err());
+        assert!(validate_model_name("model\nname").is_err());
+        assert!(validate_model_name("model\rname").is_err());
+        assert!(validate_model_name("model\tname").is_err());
+        assert!(validate_model_name("gemini/../etc").is_err());
+        assert!(validate_model_name("gemini-pro?key=injected").is_err());
+        assert!(validate_model_name("gemini-pro#fragment").is_err());
+        assert!(validate_model_name("/gemini-pro").is_err());
+        assert!(validate_model_name("gemini-pro/").is_err());
     }
 }
