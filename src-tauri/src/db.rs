@@ -319,24 +319,34 @@ pub fn next_sort_order(
     parent_column: &str,
     parent_id: &str,
 ) -> CommandResult<i64> {
-    match (table, parent_column) {
-        ("halls", "wing_id")
-        | ("rooms", "hall_id")
-        | ("drawers", "room_id")
-        | ("items", "drawer_id")
-        | ("story_scenes", "plan_id")
-        | ("story_beats", "scene_id") => {}
+    let query = match (table, parent_column) {
+        ("halls", "wing_id") => {
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM halls WHERE wing_id = ?1"
+        }
+        ("rooms", "hall_id") => {
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM rooms WHERE hall_id = ?1"
+        }
+        ("drawers", "room_id") => {
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM drawers WHERE room_id = ?1"
+        }
+        ("items", "drawer_id") => {
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM items WHERE drawer_id = ?1"
+        }
+        ("story_scenes", "plan_id") => {
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM story_scenes WHERE plan_id = ?1"
+        }
+        ("story_beats", "scene_id") => {
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM story_beats WHERE scene_id = ?1"
+        }
         _ => {
             return Err(format!(
                 "Invalid table or parent column for sort order calculation: {table}.{parent_column}"
             ))
         }
-    }
+    };
 
-    let query =
-        format!("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM {table} WHERE {parent_column} = ?1");
     connection
-        .query_row(&query, params![parent_id], |row| row.get(0))
+        .query_row(query, params![parent_id], |row| row.get(0))
         .map_err(|error| format!("Could not calculate sort order: {error}"))
 }
 
@@ -588,14 +598,16 @@ pub fn ensure_hierarchy_node(
     id: &str,
     label: &str,
 ) -> CommandResult<()> {
-    match table {
-        "wings" | "halls" | "rooms" | "drawers" => {}
+    let query = match table {
+        "wings" => "SELECT COUNT(*) FROM wings WHERE id = ?1",
+        "halls" => "SELECT COUNT(*) FROM halls WHERE id = ?1",
+        "rooms" => "SELECT COUNT(*) FROM rooms WHERE id = ?1",
+        "drawers" => "SELECT COUNT(*) FROM drawers WHERE id = ?1",
         _ => return Err(format!("Invalid hierarchy table: {table}")),
-    }
+    };
 
-    let query = format!("SELECT COUNT(*) FROM {table} WHERE id = ?1");
     let count: i64 = connection
-        .query_row(&query, params![id], |row| row.get(0))
+        .query_row(query, params![id], |row| row.get(0))
         .map_err(|error| format!("Could not verify parent {label}: {error}"))?;
     if count == 0 {
         return Err(format!("Parent {label} not found."));
@@ -772,6 +784,22 @@ mod tests {
 
         let order = next_sort_order(&conn, "drawers", "room_id", "r1").unwrap();
         assert_eq!(order, 0);
+    }
+
+    #[test]
+    fn next_sort_order_all_allowed_pairs() {
+        let conn = test_db();
+        insert_test_wing(&conn, "w1", "Wing");
+        insert_test_hall(&conn, "h1", "w1", "Hall");
+        insert_test_room(&conn, "r1", "h1", "Room");
+        insert_test_drawer(&conn, "d1", "r1", "Drawer 1");
+
+        assert_eq!(next_sort_order(&conn, "halls", "wing_id", "w1").unwrap(), 1);
+        assert_eq!(next_sort_order(&conn, "rooms", "hall_id", "h1").unwrap(), 1);
+        assert_eq!(next_sort_order(&conn, "drawers", "room_id", "r1").unwrap(), 1);
+        assert_eq!(next_sort_order(&conn, "items", "drawer_id", "d1").unwrap(), 0);
+        assert_eq!(next_sort_order(&conn, "story_scenes", "plan_id", "p1").unwrap(), 0);
+        assert_eq!(next_sort_order(&conn, "story_beats", "scene_id", "s1").unwrap(), 0);
     }
 
     #[test]
