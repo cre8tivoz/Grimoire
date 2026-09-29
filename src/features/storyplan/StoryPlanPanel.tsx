@@ -571,8 +571,14 @@ export function StoryPlanPanel({
                           )}
                         </div>
                       ))}
-                      <button className="text-button sp-add-beat" type="button" onClick={() => void handleCreateBeat(scene.id)}>
-                        <Plus size={12} /> New Beat
+                      <button
+                        className="text-button sp-add-beat"
+                        type="button"
+                        aria-label={`New beat in "${scene.title}"`}
+                        title={`New beat in "${scene.title}"`}
+                        onClick={() => void handleCreateBeat(scene.id)}
+                      >
+                        <Plus size={12} aria-hidden="true" /> New Beat
                       </button>
                     </div>
                   )}
@@ -609,8 +615,14 @@ export function StoryPlanPanel({
           </div>
 
           <div className="sp-footer">
-            <button className="text-button" type="button" onClick={() => void handleCreateScene()}>
-              <Plus size={12} /> New Scene
+            <button
+              className="text-button"
+              type="button"
+              aria-label={`New scene in "${detail.projectName}"`}
+              title={`New scene in "${detail.projectName}"`}
+              onClick={() => void handleCreateScene()}
+            >
+              <Plus size={12} aria-hidden="true" /> New Scene
             </button>
           </div>
         </div>

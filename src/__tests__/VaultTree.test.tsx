@@ -103,9 +103,11 @@ describe("VaultTree", () => {
     expect(archiveButtons.length).toBeGreaterThan(0);
   });
 
-  it("shows create buttons for branches", () => {
+  it("shows create buttons for branches with matching title tooltips", () => {
     render(<VaultTree tree={treeWithItems} activeItemId="" expandedNodeIds={new Set(["w1"])} onArchiveItem={noop} onCreateNode={noop} onToggle={noop} onSelectItem={noop} />);
-    expect(screen.getByText("New Hall")).toBeInTheDocument();
+    const newHallBtn = screen.getByLabelText("New Hall in Act One");
+    expect(newHallBtn).toBeInTheDocument();
+    expect(newHallBtn).toHaveAttribute("title", "New Hall in Act One");
   });
 
   it("highlights active item", () => {

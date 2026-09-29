@@ -144,7 +144,7 @@ describe("CoWriterPanel Accessibility", () => {
       />
     );
 
-    const importBtn = screen.getByRole("button", { name: /import paste/i });
+    const importBtn = screen.getByRole("button", { name: /importing/i });
     expect(importBtn).toBeDisabled();
     expect(importBtn).toHaveAttribute("aria-busy", "true");
 
@@ -152,8 +152,21 @@ describe("CoWriterPanel Accessibility", () => {
     expect(refreshBtn).toBeDisabled();
     expect(refreshBtn).toHaveAttribute("aria-busy", "true");
 
-    const askBtn = screen.getByRole("button", { name: /ask co-writer/i });
+    const askBtn = screen.getByRole("button", { name: /asking co-writer/i });
     expect(askBtn).toBeDisabled();
     expect(askBtn).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("renders answer card insert button with context-aware aria-label and title", () => {
+    render(
+      <CoWriterPanel
+        {...defaultProps}
+        cowriterAnswer="The hero enters the dark forest."
+      />
+    );
+
+    const insertBtn = screen.getByLabelText("Insert answer into Canvas");
+    expect(insertBtn).toBeInTheDocument();
+    expect(insertBtn).toHaveAttribute("title", "Insert answer into Canvas");
   });
 });

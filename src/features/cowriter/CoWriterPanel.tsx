@@ -148,7 +148,8 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
             <p className="tool-hint">Import multiple .md, .markdown, or .txt files. Each file is capped at 10,000 words; add more chunks later if needed.</p>
             <div className="inline-actions">
               <button className="button button-primary" type="submit" disabled={props.importState === "working"} aria-busy={props.importState === "working"}>
-                {props.importState === "working" ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Clipboard size={16} aria-hidden="true" />}Import Paste
+                {props.importState === "working" ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Clipboard size={16} aria-hidden="true" />}
+                {props.importState === "working" ? "Importing…" : "Import Paste"}
               </button>
               <label className="file-button"><FileText size={16} aria-hidden="true" />Files<input type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" multiple aria-label="Upload files" onChange={(e) => props.onFileImport(e.currentTarget.files)} /></label>
             </div>
@@ -219,7 +220,8 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
           <textarea className="compact-textarea" value={props.cowriterPrompt} onChange={(e) => props.onCowriterPromptChange(e.target.value)} placeholder="Ask a grounded question across the Vault" aria-label="Co-Writer question prompt" />
           <p className="tool-hint">Searches the whole Vault first, then uses the active Canvas as extra context when it helps.</p>
           <button className="button button-primary full-width" type="button" onClick={props.onRunCowriter} disabled={props.cowriterState === "working"} aria-busy={props.cowriterState === "working"}>
-            {props.cowriterState === "working" ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}Ask Co-Writer
+            {props.cowriterState === "working" ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}
+            {props.cowriterState === "working" ? "Asking Co-Writer…" : "Ask Co-Writer"}
           </button>
           {props.cowriterError ? <p className="inline-error">{props.cowriterError}</p> : null}
           {props.cowriterAnswer ? (
@@ -228,7 +230,15 @@ export function CoWriterPanel(props: CoWriterPanelProps) {
               <CitationList results={props.retrievalResults} />
               <WardWarnings hits={props.answerWardHits} />
               <div className="inline-actions">
-                <button className="button button-secondary" type="button" onClick={props.onInsertAnswer}><Check size={16} aria-hidden="true" />{props.answerWardHits.length ? "Insert Anyway" : "Insert"}</button>
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={props.onInsertAnswer}
+                  aria-label={props.answerWardHits.length ? "Insert answer with ward warnings into Canvas" : "Insert answer into Canvas"}
+                  title={props.answerWardHits.length ? "Insert answer with ward warnings into Canvas" : "Insert answer into Canvas"}
+                >
+                  <Check size={16} aria-hidden="true" />{props.answerWardHits.length ? "Insert Anyway" : "Insert"}
+                </button>
                 <button className="icon-button" type="button" aria-label="Copy answer" title="Copy answer" onClick={props.onCopyAnswer}><Copy size={16} aria-hidden="true" /></button>
                 <button className="icon-button" type="button" aria-label="Rewrite clean" title="Rewrite clean" onClick={props.onRewriteClean}><WandSparkles size={16} aria-hidden="true" /></button>
                 <button className="icon-button" type="button" aria-label="Discard answer" title="Discard answer" onClick={props.onDiscardAnswer}><X size={16} aria-hidden="true" /></button>
