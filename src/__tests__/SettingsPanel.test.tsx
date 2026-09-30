@@ -94,6 +94,23 @@ describe("SettingsPanel", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("calls onClose when Escape key is pressed", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<SettingsPanel {...defaults} onClose={onClose} />);
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when clicking the backdrop", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<SettingsPanel {...defaults} onClose={onClose} />);
+    const dialog = screen.getByRole("dialog");
+    await user.click(dialog);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("calls onThemeChange when theme button clicked and exposes aria-pressed state", async () => {
     const user = userEvent.setup();
     const onThemeChange = vi.fn();
