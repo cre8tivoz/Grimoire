@@ -248,16 +248,21 @@ pub fn is_safe_export_path(export_dir: &Path, file_path: &Path) -> bool {
     if file_path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
         return false;
     }
+    let full_path = if file_path.is_relative() {
+        export_dir.join(file_path)
+    } else {
+        file_path.to_path_buf()
+    };
     if let Ok(canonical_export) = export_dir.canonicalize() {
-        if let Ok(canonical_file) = file_path.canonicalize() {
-            return canonical_file.starts_with(&canonical_export);
-        } else if let Some(parent) = file_path.parent() {
+        if let Ok(canonical_full) = full_path.canonicalize() {
+            return canonical_full.starts_with(&canonical_export);
+        } else if let Some(parent) = full_path.parent() {
             if let Ok(canonical_parent) = parent.canonicalize() {
                 return canonical_parent.starts_with(&canonical_export);
             }
         }
     }
-    file_path.starts_with(export_dir)
+    full_path.starts_with(export_dir)
 }
 
 fn sanitize_filename(value: &str) -> String {
