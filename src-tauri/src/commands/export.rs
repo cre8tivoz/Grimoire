@@ -13,7 +13,7 @@ pub fn export_item_markdown(request: ExportItemRequest) -> CommandResult<ExportR
         .map_err(|error| format!("Could not create export folder: {error}"))?;
     let safe_filename = sanitize_filename(&item.title);
     let file_path = export_dir.join(format!("{safe_filename}.md"));
-    if !file_path.starts_with(&export_dir) {
+    if !is_safe_export_path(&export_dir, &file_path) {
         return Err("Export path traversal detected.".to_string());
     }
     let markdown = format!("# {}\n\n{}\n", item.title, item.content.trim());
@@ -47,6 +47,9 @@ pub fn export_project_json(project_path: String) -> CommandResult<ExportResponse
         "vault": tree,
         "wards": wards
     });
+    if !is_safe_export_path(&export_dir, &file_path) {
+        return Err("Export path traversal detected.".to_string());
+    }
     let raw = serde_json::to_string_pretty(&payload)
         .map_err(|error| format!("Could not serialize project export: {error}"))?;
     fs::write(&file_path, raw)
@@ -124,6 +127,9 @@ pub fn export_vault_items_json(project_path: String) -> CommandResult<ExportResp
         },
         "items": items
     });
+    if !is_safe_export_path(&export_dir, &file_path) {
+        return Err("Export path traversal detected.".to_string());
+    }
     let raw = serde_json::to_string_pretty(&payload)
         .map_err(|error| format!("Could not serialize Vault items export: {error}"))?;
     fs::write(&file_path, raw)
@@ -172,7 +178,7 @@ pub fn manuscript_export(request: ManuscriptExportRequest) -> CommandResult<Expo
     let file_path = export_dir.join(format!(
         "grimoire-manuscript-{safe_filename}.{ext}"
     ));
-    if !file_path.starts_with(&export_dir) {
+    if !is_safe_export_path(&export_dir, &file_path) {
         return Err("Export path traversal detected.".to_string());
     }
     fs::write(&file_path, markdown)
@@ -238,6 +244,22 @@ pub fn reorder_item(request: ItemReorderRequest) -> CommandResult<VaultTreeRespo
     read_vault_tree(&connection)
 }
 
+pub fn is_safe_export_path(export_dir: &Path, file_path: &Path) -> bool {
+    if file_path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return false;
+    }
+    if let Ok(canonical_export) = export_dir.canonicalize() {
+        if let Ok(canonical_file) = file_path.canonicalize() {
+            return canonical_file.starts_with(&canonical_export);
+        } else if let Some(parent) = file_path.parent() {
+            if let Ok(canonical_parent) = parent.canonicalize() {
+                return canonical_parent.starts_with(&canonical_export);
+            }
+        }
+    }
+    file_path.starts_with(export_dir)
+}
+
 fn sanitize_filename(value: &str) -> String {
     let cleaned: String = value
         .chars()
@@ -288,6 +310,36 @@ mod tests {
         assert!(
             file_path.starts_with(&export_dir),
             "Sanitized filename must remain within export_dir"
+        );
+    }
+
+    #[test]
+    fn export_project_json_path_traversal() {
+        let export_dir = PathBuf::from("/tmp/my_project.grimoire/exports");
+        let file_path = export_dir.join("grimoire-export-12345.json");
+        assert!(
+            is_safe_export_path(&export_dir, &file_path),
+            "Project JSON export path must pass is_safe_export_path"
+        );
+        let unsafe_file_path = export_dir.join("../grimoire-export-12345.json");
+        assert!(
+            !is_safe_export_path(&export_dir, &unsafe_file_path),
+            "Unsafe traversal path must fail is_safe_export_path"
+        );
+    }
+
+    #[test]
+    fn export_vault_items_json_path_traversal() {
+        let export_dir = PathBuf::from("/tmp/my_project.grimoire/exports");
+        let file_path = export_dir.join("grimoire-vault-items-12345.json");
+        assert!(
+            is_safe_export_path(&export_dir, &file_path),
+            "Vault items JSON export path must pass is_safe_export_path"
+        );
+        let unsafe_file_path = export_dir.join("../grimoire-vault-items-12345.json");
+        assert!(
+            !is_safe_export_path(&export_dir, &unsafe_file_path),
+            "Unsafe traversal path must fail is_safe_export_path"
         );
     }
 }
