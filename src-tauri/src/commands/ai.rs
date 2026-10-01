@@ -85,9 +85,9 @@ pub fn ai_set_api_key(request: AiApiKeyRequest) -> CommandResult<AiProviderSetti
     if api_key.is_empty() {
         return Err("API key cannot be empty.".to_string());
     }
-    // Security validation: reject newlines in API keys to prevent HTTP header injection
-    if api_key.contains('\n') || api_key.contains('\r') {
-        return Err("API key cannot contain newline characters.".to_string());
+    // Security validation: reject whitespace and newlines in API keys to prevent HTTP header injection and malformed keys
+    if api_key.contains('\n') || api_key.contains('\r') || api_key.contains(' ') || api_key.contains('\t') {
+        return Err("API key cannot contain spaces or newline characters.".to_string());
     }
     llm::set_api_key_secret(&request.project_path, request.provider, api_key)?;
     set_setting(
@@ -361,7 +361,36 @@ mod tests {
             api_key: "sk-proj-1234\r\nInjectedHeader: value".to_string(),
         };
         let err = ai_set_api_key(req).unwrap_err();
-        assert!(err.contains("newline characters"));
+        assert!(err.contains("spaces or newline characters"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn ai_set_api_key_rejects_spaces_and_tabs() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_ai_key_spaces_test_{}.grimoire",
+            crate::helpers::timestamp_nanos()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let metadata = crate::commands::load_or_create_metadata(&temp_dir, "Test Project").unwrap();
+        crate::commands::initialise_database(&metadata, false).unwrap();
+
+        let req_space = AiApiKeyRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            provider: AiProviderKind::OpenAi,
+            api_key: "sk-proj-1234 extra_space".to_string(),
+        };
+        let err_space = ai_set_api_key(req_space).unwrap_err();
+        assert!(err_space.contains("spaces or newline characters"));
+
+        let req_tab = AiApiKeyRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            provider: AiProviderKind::OpenAi,
+            api_key: "sk-proj-1234\textra_tab".to_string(),
+        };
+        let err_tab = ai_set_api_key(req_tab).unwrap_err();
+        assert!(err_tab.contains("spaces or newline characters"));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
