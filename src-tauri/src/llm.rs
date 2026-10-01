@@ -78,6 +78,9 @@ pub fn validate_model_name(model: &str) -> CommandResult<()> {
     if trimmed.is_empty() {
         return Err("Model name cannot be empty.".to_string());
     }
+    if trimmed.chars().count() > 128 {
+        return Err("Model name cannot exceed 128 characters.".to_string());
+    }
     if trimmed.contains('\n') || trimmed.contains('\r') || trimmed.contains(' ') || trimmed.contains('\t') {
         return Err("Model name cannot contain spaces or newline characters.".to_string());
     }
@@ -1169,5 +1172,13 @@ mod tests {
         assert!(validate_model_name("gemini-pro#fragment").is_err());
         assert!(validate_model_name("/gemini-pro").is_err());
         assert!(validate_model_name("gemini-pro/").is_err());
+    }
+
+    #[test]
+    fn validate_model_name_rejects_overlong_names() {
+        let long_name = "a".repeat(129);
+        let err = validate_model_name(&long_name).unwrap_err();
+        assert!(err.contains("cannot exceed 128 characters"));
+        assert!(validate_model_name(&"a".repeat(128)).is_ok());
     }
 }

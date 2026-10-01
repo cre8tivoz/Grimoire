@@ -16,6 +16,12 @@ pub fn wards_add(request: WardPhraseRequest) -> CommandResult<Vec<BannedWord>> {
     if value.is_empty() {
         return Err("Ward phrase cannot be empty.".to_string());
     }
+    if value.chars().count() > 100 {
+        return Err("Ward phrase cannot exceed 100 characters.".to_string());
+    }
+    if value.contains('\n') || value.contains('\r') {
+        return Err("Ward phrase cannot contain newline characters.".to_string());
+    }
 
     let severity = match request.severity.as_deref().unwrap_or("warn") {
         "block" => "block",
@@ -50,4 +56,38 @@ pub fn wards_scan(request: WardScanRequest) -> CommandResult<WardScanResponse> {
     let connection = open_project_database(&request.project_path)?;
     let words = read_banned_words(&connection)?;
     Ok(scan_wards(&words, &request.text))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wards_add_rejects_overlong_and_multiline_phrases() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_wards_test_{}.grimoire",
+            crate::helpers::timestamp_nanos()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let metadata = crate::commands::load_or_create_metadata(&temp_dir, "Test Project").unwrap();
+        crate::commands::initialise_database(&metadata, false).unwrap();
+
+        let req_long = WardPhraseRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            value: "a".repeat(101),
+            severity: Some("warn".to_string()),
+        };
+        let err_long = wards_add(req_long).unwrap_err();
+        assert!(err_long.contains("cannot exceed 100 characters"));
+
+        let req_newline = WardPhraseRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            value: "slay\nmonster".to_string(),
+            severity: Some("warn".to_string()),
+        };
+        let err_newline = wards_add(req_newline).unwrap_err();
+        assert!(err_newline.contains("cannot contain newline characters"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
 }
