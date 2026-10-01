@@ -9,3 +9,7 @@
 ## 2025-05-18 - Async Action Buttons & Animated Spinner States
 **Learning:** Async trigger buttons (e.g. in panel headers or tool drawers) require `disabled={state === "working"}` and `aria-busy={state === "working"}` to prevent duplicate invocations and signal pending status to screen readers, while loading icons must feature `className="animate-spin"` and `aria-hidden="true"`.
 **Action:** Ensure all async panel submit and refresh buttons disable themselves during execution and pair `aria-busy` with animated `Loader2` spinners.
+
+## 2025-05-18 - Dynamic Tooltips for Disabled Export Actions
+**Learning:** Text buttons with disabled states (such as canvas export buttons) must convey their requirement dynamically through `title` tooltips and descriptive `aria-label` attributes (e.g. "Open a project with an active item to export") so keyboard and screen reader users understand why an action is disabled.
+**Action:** When disabling action buttons in workspace toolbars, add explanatory `title` tooltips conditioned on the missing prerequisite.

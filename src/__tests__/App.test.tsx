@@ -22,7 +22,42 @@ describe("App Header and Panel Accessibility", () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
-      if (cmd === "db_get_vault_tree") return Promise.resolve({ wings: [], itemCount: 0 });
+      if (cmd === "db_get_vault_tree") return Promise.resolve({
+        wings: [
+          {
+            id: "wing-1",
+            name: "Main Wing",
+            halls: [
+              {
+                id: "hall-1",
+                name: "Main Hall",
+                rooms: [
+                  {
+                    id: "room-1",
+                    name: "Main Room",
+                    drawers: [
+                      {
+                        id: "drawer-1",
+                        name: "Main Drawer",
+                        items: [
+                          {
+                            id: "item-1",
+                            title: "Chapter 1",
+                            itemType: "chapter",
+                            wordCount: 120,
+                            path: "Main Wing / Main Hall / Main Room / Main Drawer / Chapter 1",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        itemCount: 1,
+      });
       if (cmd === "storyplan_list") return Promise.resolve({ plans: [] });
       if (cmd === "storyplan_candidate_list") return Promise.resolve([]);
       if (cmd === "get_ai_engine_status") return Promise.resolve({ provider: "ollama", activeModel: "llama3" });
@@ -93,5 +128,34 @@ describe("App Header and Panel Accessibility", () => {
 
     const openVaultBtn = screen.getByLabelText("Open Vault panel");
     expect(openVaultBtn).toHaveAttribute("title", "Open Vault panel");
+  });
+
+  it("renders Vault root create buttons and Canvas export buttons with accessible labels and disabled states", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Click "Load Demo" to enter workspace
+    const loadDemoBtn = screen.getByRole("button", { name: /Load Demo/i });
+    await user.click(loadDemoBtn);
+
+    // Vault root creation buttons
+    const createWingBtn = screen.getByLabelText("Create root wing");
+    expect(createWingBtn).toHaveAttribute("title", "Create root wing");
+
+    const createHallBtn = screen.getByLabelText("Create root hall");
+    expect(createHallBtn).toHaveAttribute("title", "Create root hall");
+
+    // Canvas export buttons
+    const exportMarkdownBtn = screen.getByLabelText("Export active item to Markdown");
+    expect(exportMarkdownBtn).toHaveAttribute("title", "Export active item to Markdown");
+    expect(exportMarkdownBtn).not.toBeDisabled();
+
+    const exportProjectBtn = screen.getByLabelText("Export project JSON");
+    expect(exportProjectBtn).toHaveAttribute("title", "Export project JSON");
+    expect(exportProjectBtn).not.toBeDisabled();
+
+    const exportManuscriptBtn = screen.getByLabelText("Export manuscript Markdown");
+    expect(exportManuscriptBtn).toHaveAttribute("title", "Export manuscript Markdown");
+    expect(exportManuscriptBtn).not.toBeDisabled();
   });
 });
