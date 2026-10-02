@@ -867,6 +867,7 @@ pub fn storyplan_reorder(request: StoryReorderRequest) -> CommandResult<StoryPla
 pub fn storyplan_candidate_store(
     request: StoryCandidateStoreRequest,
 ) -> CommandResult<StoryCandidate> {
+    crate::llm::validate_model_name(&request.model)?;
     let connection = open_project_database(&request.project_path)?;
     let target_kind = request.target_kind.trim().to_lowercase();
     if !["plan", "scene", "beat", "script"].contains(&target_kind.as_str()) {
@@ -1674,6 +1675,33 @@ mod tests {
         // ...but explicitly marked as not-to-be-rewritten, and locked ones flagged.
         assert!(prompt.contains("do NOT rewrite them"));
         assert!(prompt.contains("(LOCKED)"));
+    }
+
+    #[test]
+    fn candidate_store_validates_model_name() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_candidate_model_test_{}.grimoire",
+            crate::helpers::timestamp_nanos()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let metadata = crate::commands::load_or_create_metadata(&temp_dir, "Test Project").unwrap();
+        crate::commands::initialise_database(&metadata, false).unwrap();
+
+        let req = StoryCandidateStoreRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            target_kind: "scene".to_string(),
+            target_id: "scene_1".to_string(),
+            provider: "ollama".to_string(),
+            model: "invalid model name with spaces".to_string(),
+            prompt_summary: None,
+            candidate_index: 0,
+            content: "Prose content".to_string(),
+        };
+
+        let err = storyplan_candidate_store(req).unwrap_err();
+        assert!(err.contains("Model name cannot contain spaces or newline characters"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
     #[test]
