@@ -168,8 +168,20 @@ export function RegeneratePanel({
           type="button"
           disabled={busy || !ready}
           aria-busy={busy}
-          aria-label={`Generate variants for ${targetKind}`}
-          title={`Generate variants for ${targetKind}`}
+          aria-label={
+            !ready
+              ? (isCloud
+                  ? `Generate variants for ${targetKind} (disabled: API key required)`
+                  : `Generate variants for ${targetKind} (disabled: local model required)`)
+              : `Generate variants for ${targetKind}`
+          }
+          title={
+            !ready
+              ? (isCloud
+                  ? "Add an API key in Co-Writer settings to generate variants"
+                  : "Start Ollama or select a local model to generate variants")
+              : `Generate variants for ${targetKind}`
+          }
           onClick={() => void handleRegenerate()}
         >
           {busy ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Send size={14} aria-hidden="true" />}
