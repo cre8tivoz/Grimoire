@@ -32,7 +32,8 @@ type AppView = "picker" | "workspace";
 type LeftTab = "vault" | "plan";
 
 // ── Helpers ──
-function countWords(text: string) {
+function countWords(text?: string | null) {
+  if (!text) return 0;
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
@@ -188,8 +189,8 @@ export function App() {
           : fallbackDetail(activeItem);
         if (cancelled) return;
         setLoadedItemId(item.id);
-        setEditorTitle(item.title);
-        setEditorContent(item.content);
+        setEditorTitle(item.title ?? "");
+        setEditorContent(item.content ?? "");
         setSaveState(currentProject && tauriState === "awake" ? "saved" : "preview");
         setSaveError(null);
         lastSavedRef.current = { itemId: item.id, title: item.title, content: item.content };
@@ -197,8 +198,8 @@ export function App() {
         if (cancelled) return;
         const fb = fallbackDetail(activeItem);
         setLoadedItemId(fb.id);
-        setEditorTitle(fb.title);
-        setEditorContent(fb.content);
+        setEditorTitle(fb.title ?? "");
+        setEditorContent(fb.content ?? "");
         setSaveState("failed");
         setSaveError("Could not load item.");
       }
@@ -590,11 +591,21 @@ export function App() {
                 <div className="panel-scroll" style={{ padding: "8px 12px" }}>
                   {/* Create buttons */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
-                    {(["wing", "hall", "room", "drawer", "item"] as const).map(t => (
-                      <button key={t} className="text-button" type="button" onClick={() => handleCreateNode(t)}>
-                        + {t.charAt(0).toUpperCase() + t.slice(1)}
-                      </button>
-                    ))}
+                    {(["wing", "hall", "room", "drawer", "item"] as const).map(t => {
+                      const label = `Create root ${t}`;
+                      return (
+                        <button
+                          key={t}
+                          className="text-button"
+                          type="button"
+                          aria-label={label}
+                          title={label}
+                          onClick={() => handleCreateNode(t)}
+                        >
+                          + {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* Vault tree */}
@@ -681,22 +692,43 @@ export function App() {
             )}
 
             <div className="canvas-actions" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border-subtle)", display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <button className="button button-secondary" type="button" onClick={handleExportItem} disabled={!canUseNative}>
-                <FileText size={14} /> Export Markdown
+              <button
+                className="button button-secondary"
+                type="button"
+                disabled={!canUseNative || !activeItem}
+                aria-label="Export active item to Markdown"
+                title={!canUseNative || !activeItem ? "Open a project with an active item to export" : "Export active item to Markdown"}
+                onClick={handleExportItem}
+              >
+                <FileText size={14} aria-hidden="true" /> Export Markdown
               </button>
-              <button className="button button-secondary" type="button" onClick={async () => {
-                if (!project || tauriState !== "awake") return;
-                try { await exportProjectJson(project.projectPath); showToast("Project exported."); }
-                catch (err) { showToast(describeError(err)); }
-              }}>
-                <Archive size={14} /> Export Project
+              <button
+                className="button button-secondary"
+                type="button"
+                disabled={!canUseNative}
+                aria-label="Export project JSON"
+                title={!canUseNative ? "Open a project to export" : "Export project JSON"}
+                onClick={async () => {
+                  if (!project || tauriState !== "awake") return;
+                  try { await exportProjectJson(project.projectPath); showToast("Project exported."); }
+                  catch (err) { showToast(describeError(err)); }
+                }}
+              >
+                <Archive size={14} aria-hidden="true" /> Export Project
               </button>
-              <button className="button button-secondary" type="button" onClick={async () => {
-                if (!project || tauriState !== "awake") return;
-                try { await manuscriptExport(project.projectPath, project.name, "markdown"); showToast("Manuscript exported."); }
-                catch (err) { showToast(describeError(err)); }
-              }}>
-                <Download size={14} /> Export Manuscript
+              <button
+                className="button button-secondary"
+                type="button"
+                disabled={!canUseNative}
+                aria-label="Export manuscript Markdown"
+                title={!canUseNative ? "Open a project to export" : "Export manuscript Markdown"}
+                onClick={async () => {
+                  if (!project || tauriState !== "awake") return;
+                  try { await manuscriptExport(project.projectPath, project.name, "markdown"); showToast("Manuscript exported."); }
+                  catch (err) { showToast(describeError(err)); }
+                }}
+              >
+                <Download size={14} aria-hidden="true" /> Export Manuscript
               </button>
             </div>
           </div>
