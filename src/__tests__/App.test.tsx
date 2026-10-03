@@ -145,17 +145,17 @@ describe("App Header and Panel Accessibility", () => {
     const createHallBtn = screen.getByLabelText("Create root hall");
     expect(createHallBtn).toHaveAttribute("title", "Create root hall");
 
-    // Canvas export buttons
-    const exportMarkdownBtn = screen.getByLabelText("Export active item to Markdown");
-    expect(exportMarkdownBtn).toHaveAttribute("title", "Export active item to Markdown");
+    // Canvas export buttons with context-specific titles
+    const exportMarkdownBtn = screen.getByLabelText('Export "Chapter 1" to Markdown');
+    expect(exportMarkdownBtn).toHaveAttribute("title", 'Export "Chapter 1" to Markdown');
     expect(exportMarkdownBtn).not.toBeDisabled();
 
-    const exportProjectBtn = screen.getByLabelText("Export project JSON");
-    expect(exportProjectBtn).toHaveAttribute("title", "Export project JSON");
+    const exportProjectBtn = screen.getByLabelText('Export project "Grimoire Demo" as JSON');
+    expect(exportProjectBtn).toHaveAttribute("title", 'Export project "Grimoire Demo" as JSON');
     expect(exportProjectBtn).not.toBeDisabled();
 
-    const exportManuscriptBtn = screen.getByLabelText("Export manuscript Markdown");
-    expect(exportManuscriptBtn).toHaveAttribute("title", "Export manuscript Markdown");
+    const exportManuscriptBtn = screen.getByLabelText('Export manuscript for "Grimoire Demo" as Markdown');
+    expect(exportManuscriptBtn).toHaveAttribute("title", 'Export manuscript for "Grimoire Demo" as Markdown');
     expect(exportManuscriptBtn).not.toBeDisabled();
   });
 });
