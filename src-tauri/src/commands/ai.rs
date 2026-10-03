@@ -45,7 +45,7 @@ pub fn ai_save_provider_settings(
             if !(value.starts_with("http://") || value.starts_with("https://")) {
                 return Err("Base URL must use http:// or https:// protocol.".to_string());
             }
-            if value.contains('\n') || value.contains('\r') || value.contains(' ') {
+            if value.chars().any(|c| c.is_control() || c.is_whitespace()) {
                 return Err("Base URL cannot contain spaces or newline characters.".to_string());
             }
             set_setting(
@@ -86,7 +86,7 @@ pub fn ai_set_api_key(request: AiApiKeyRequest) -> CommandResult<AiProviderSetti
         return Err("API key cannot be empty.".to_string());
     }
     // Security validation: reject whitespace and newlines in API keys to prevent HTTP header injection and malformed keys
-    if api_key.contains('\n') || api_key.contains('\r') || api_key.contains(' ') || api_key.contains('\t') {
+    if api_key.chars().any(|c| c.is_control() || c.is_whitespace()) {
         return Err("API key cannot contain spaces or newline characters.".to_string());
     }
     llm::set_api_key_secret(&request.project_path, request.provider, api_key)?;
@@ -341,6 +341,16 @@ mod tests {
         };
         let err2 = ai_save_provider_settings(req2).unwrap_err();
         assert!(err2.contains("spaces or newline characters"));
+
+        // Rejects tabs and control characters in base_url
+        let req_tab = AiProviderSettingsSaveRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            provider: AiProviderKind::OpenAiCompatible,
+            base_url: Some("https://example.com/\tapi".to_string()),
+            selected_model: None,
+        };
+        let err_tab = ai_save_provider_settings(req_tab).unwrap_err();
+        assert!(err_tab.contains("spaces or newline characters"));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
