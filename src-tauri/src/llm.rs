@@ -81,7 +81,7 @@ pub fn validate_model_name(model: &str) -> CommandResult<()> {
     if trimmed.chars().count() > 128 {
         return Err("Model name cannot exceed 128 characters.".to_string());
     }
-    if trimmed.contains('\n') || trimmed.contains('\r') || trimmed.contains(' ') || trimmed.contains('\t') {
+    if trimmed.chars().any(|c| c.is_control() || c.is_whitespace()) {
         return Err("Model name cannot contain spaces or newline characters.".to_string());
     }
     if trimmed.contains("..") || trimmed.contains('?') || trimmed.contains('#') {
@@ -1167,6 +1167,7 @@ mod tests {
         assert!(validate_model_name("model\nname").is_err());
         assert!(validate_model_name("model\rname").is_err());
         assert!(validate_model_name("model\tname").is_err());
+        assert!(validate_model_name("model\x07name").is_err());
         assert!(validate_model_name("gemini/../etc").is_err());
         assert!(validate_model_name("gemini-pro?key=injected").is_err());
         assert!(validate_model_name("gemini-pro#fragment").is_err());
