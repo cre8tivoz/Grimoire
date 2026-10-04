@@ -873,6 +873,16 @@ pub fn storyplan_candidate_store(
     if !["plan", "scene", "beat", "script"].contains(&target_kind.as_str()) {
         return Err("Candidate target must be plan, scene, beat, or script.".to_string());
     }
+    let provider = request.provider.trim();
+    if provider.is_empty() {
+        return Err("Candidate provider cannot be empty.".to_string());
+    }
+    if provider.chars().count() > 64 {
+        return Err("Candidate provider cannot exceed 64 characters.".to_string());
+    }
+    if provider.chars().any(|c| c.is_control() || c.is_whitespace()) {
+        return Err("Candidate provider cannot contain spaces or newline characters.".to_string());
+    }
     let content = request.content.trim().to_string();
     if content.is_empty() {
         return Err("Candidate content cannot be empty.".to_string());
@@ -883,7 +893,7 @@ pub fn storyplan_candidate_store(
         &NewCandidate {
             target_kind: &target_kind,
             target_id: &request.target_id,
-            provider: &request.provider,
+            provider,
             model: &request.model,
             prompt_summary: request.prompt_summary.as_deref(),
             candidate_index: request.candidate_index,
@@ -1700,6 +1710,54 @@ mod tests {
 
         let err = storyplan_candidate_store(req).unwrap_err();
         assert!(err.contains("Model name cannot contain spaces or newline characters"));
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn candidate_store_validates_provider_name() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "grimoire_candidate_provider_test_{}.grimoire",
+            crate::helpers::timestamp_nanos()
+        ));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let metadata = crate::commands::load_or_create_metadata(&temp_dir, "Test Project").unwrap();
+        crate::commands::initialise_database(&metadata, false).unwrap();
+
+        let base_req = StoryCandidateStoreRequest {
+            project_path: temp_dir.to_string_lossy().to_string(),
+            target_kind: "scene".to_string(),
+            target_id: "scene_1".to_string(),
+            provider: "ollama".to_string(),
+            model: "llama3.2".to_string(),
+            prompt_summary: None,
+            candidate_index: 0,
+            content: "Prose content".to_string(),
+        };
+
+        // Empty provider
+        let req_empty = StoryCandidateStoreRequest {
+            provider: "".to_string(),
+            ..base_req.clone()
+        };
+        let err_empty = storyplan_candidate_store(req_empty).unwrap_err();
+        assert!(err_empty.contains("Candidate provider cannot be empty"));
+
+        // Overlong provider
+        let req_long = StoryCandidateStoreRequest {
+            provider: "a".repeat(65),
+            ..base_req.clone()
+        };
+        let err_long = storyplan_candidate_store(req_long).unwrap_err();
+        assert!(err_long.contains("cannot exceed 64 characters"));
+
+        // Spaces or newline in provider
+        let req_space = StoryCandidateStoreRequest {
+            provider: "invalid provider with spaces".to_string(),
+            ..base_req.clone()
+        };
+        let err_space = storyplan_candidate_store(req_space).unwrap_err();
+        assert!(err_space.contains("cannot contain spaces or newline characters"));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
