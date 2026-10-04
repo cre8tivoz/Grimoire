@@ -591,7 +591,7 @@ pub struct StoryBeatDeleteRequest {
 
 // Candidate requests / responses
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct StoryCandidateStoreRequest {
     pub project_path: String,
