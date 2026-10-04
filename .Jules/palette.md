@@ -13,3 +13,7 @@
 ## 2025-05-18 - Dynamic Tooltips for Disabled Export Actions
 **Learning:** Text buttons with disabled states (such as canvas export buttons) must convey their requirement dynamically through `title` tooltips and descriptive `aria-label` attributes (e.g. "Open a project with an active item to export") so keyboard and screen reader users understand why an action is disabled.
 **Action:** When disabling action buttons in workspace toolbars, add explanatory `title` tooltips conditioned on the missing prerequisite.
+
+## 2025-05-18 - Recent List Row Action Isolation & Accessible Removal
+**Learning:** In list row items (such as Recent Projects in the project picker), pairing an inner primary action button with a flex row wrapper and an explicit icon-only remove button featuring context-aware `aria-label={`Remove "${rp.name}" from recent projects`}` and `e.stopPropagation()` ensures clear screen reader context, keyboard accessibility, and immediate toast feedback without accidentally triggering the row's primary action.
+**Action:** When adding secondary actions to list row items, isolate click events with `e.stopPropagation()`, provide context-specific `aria-label`s and `title`s, and announce changes via toast notifications.

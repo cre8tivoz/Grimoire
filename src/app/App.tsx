@@ -510,7 +510,7 @@ export function App() {
                 <h3>Recent Projects</h3>
                 <ul className="recent-list">
                   {recentProjects.map(rp => (
-                    <li key={rp.path}>
+                    <li key={rp.path} className="recent-project-item">
                       <button className="recent-project-button" type="button" onClick={async () => {
                         try { await loadProjectIntoWorkspace(await openProject(rp.path)); }
                         catch (error) {
@@ -523,11 +523,25 @@ export function App() {
                           setRecentProjects(getRecentProjects());
                         }
                       }}>
-                        <FileText size={14} />
+                        <FileText size={14} aria-hidden="true" />
                         <div>
                           <span className="recent-name">{rp.name}</span>
                           <span className="recent-path">{compactPath(rp.path)}</span>
                         </div>
+                      </button>
+                      <button
+                        className="icon-button recent-remove-button"
+                        type="button"
+                        aria-label={`Remove "${rp.name}" from recent projects`}
+                        title={`Remove "${rp.name}" from recent projects`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeRecentProject(rp.path);
+                          setRecentProjects(getRecentProjects());
+                          showToast(`Removed "${rp.name}" from recent projects.`);
+                        }}
+                      >
+                        <X size={14} aria-hidden="true" />
                       </button>
                     </li>
                   ))}

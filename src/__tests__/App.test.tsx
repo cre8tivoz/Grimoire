@@ -158,4 +158,29 @@ describe("App Header and Panel Accessibility", () => {
     expect(exportManuscriptBtn).toHaveAttribute("title", 'Export manuscript for "Grimoire Demo" as Markdown');
     expect(exportManuscriptBtn).not.toBeDisabled();
   });
+
+  it("renders accessible remove button for recent projects and removes project on click", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(
+      "grimoire.recent.projects",
+      JSON.stringify([
+        {
+          name: "Old Tale",
+          path: "/test/old_tale.grimoire",
+          lastOpenedAt: new Date().toISOString(),
+        },
+      ]),
+    );
+
+    render(<App />);
+
+    const removeBtn = screen.getByLabelText('Remove "Old Tale" from recent projects');
+    expect(removeBtn).toHaveAttribute("title", 'Remove "Old Tale" from recent projects');
+
+    await user.click(removeBtn);
+
+    expect(screen.queryByText("Old Tale")).not.toBeInTheDocument();
+    expect(screen.getByText('Removed "Old Tale" from recent projects.')).toBeInTheDocument();
+    expect(localStorage.getItem("grimoire.recent.projects")).toBe("[]");
+  });
 });
