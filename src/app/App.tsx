@@ -696,8 +696,8 @@ export function App() {
                 className="button button-secondary"
                 type="button"
                 disabled={!canUseNative || !activeItem}
-                aria-label="Export active item to Markdown"
-                title={!canUseNative || !activeItem ? "Open a project with an active item to export" : "Export active item to Markdown"}
+                aria-label={!canUseNative || !activeItem ? "Open a project with an active item to export Markdown" : activeItem?.title ? `Export "${activeItem.title}" to Markdown` : "Export active item to Markdown"}
+                title={!canUseNative || !activeItem ? "Open a project with an active item to export Markdown" : activeItem?.title ? `Export "${activeItem.title}" to Markdown` : "Export active item to Markdown"}
                 onClick={handleExportItem}
               >
                 <FileText size={14} aria-hidden="true" /> Export Markdown
@@ -706,8 +706,8 @@ export function App() {
                 className="button button-secondary"
                 type="button"
                 disabled={!canUseNative}
-                aria-label="Export project JSON"
-                title={!canUseNative ? "Open a project to export" : "Export project JSON"}
+                aria-label={!canUseNative ? "Open a project to export project JSON" : project?.name ? `Export project "${project.name}" as JSON` : "Export project JSON"}
+                title={!canUseNative ? "Open a project to export project JSON" : project?.name ? `Export project "${project.name}" as JSON` : "Export project JSON"}
                 onClick={async () => {
                   if (!project || tauriState !== "awake") return;
                   try { await exportProjectJson(project.projectPath); showToast("Project exported."); }
@@ -720,8 +720,8 @@ export function App() {
                 className="button button-secondary"
                 type="button"
                 disabled={!canUseNative}
-                aria-label="Export manuscript Markdown"
-                title={!canUseNative ? "Open a project to export" : "Export manuscript Markdown"}
+                aria-label={!canUseNative ? "Open a project to export manuscript Markdown" : project?.name ? `Export manuscript for "${project.name}" as Markdown` : "Export manuscript Markdown"}
+                title={!canUseNative ? "Open a project to export manuscript Markdown" : project?.name ? `Export manuscript for "${project.name}" as Markdown` : "Export manuscript Markdown"}
                 onClick={async () => {
                   if (!project || tauriState !== "awake") return;
                   try { await manuscriptExport(project.projectPath, project.name, "markdown"); showToast("Manuscript exported."); }
