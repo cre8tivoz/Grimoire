@@ -110,7 +110,7 @@ jobs:
             2. Windows SmartScreen may warn because the installer is unsigned. Click **More info → Run anyway**.
             3. Follow the installer, then launch Grimoire from the Start menu.
 
-            Only install from the official [Witch Daddy Labs](https://github.com/witchdaddylabs/Grimoire) release.
+            Only install from the official [Witch Daddy Labs](https://github.com/cre8tivoz/Grimoire) release.
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             grimoire-dmg-sha256.txt
