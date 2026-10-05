@@ -8,7 +8,13 @@ pub fn app_ping() -> &'static str {
 #[tauri::command]
 pub fn project_create(request: ProjectCreateRequest) -> CommandResult<ProjectMetadata> {
     let parent_dir = match request.parent_dir {
-        Some(path) if !path.trim().is_empty() => PathBuf::from(path),
+        Some(path) if !path.trim().is_empty() => {
+            let p = PathBuf::from(path.trim());
+            if p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+                return Err("Parent directory path cannot contain path traversal ('..').".to_string());
+            }
+            p
+        }
         _ => super::default_projects_dir()?,
     };
 
@@ -37,4 +43,20 @@ pub fn project_open(project_path: String) -> CommandResult<ProjectMetadata> {
 pub fn project_get_metadata(project_path: String) -> CommandResult<ProjectMetadata> {
     let project_dir = super::validate_project_dir(PathBuf::from(project_path))?;
     super::read_metadata(&project_dir)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_create_rejects_parent_dir_path_traversal() {
+        let req = ProjectCreateRequest {
+            name: "Test Project".to_string(),
+            parent_dir: Some("../../etc".to_string()),
+            seed_demo_data: None,
+        };
+        let err = project_create(req).unwrap_err();
+        assert!(err.contains("path traversal"));
+    }
 }

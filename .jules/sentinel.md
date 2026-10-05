@@ -12,3 +12,8 @@
 **Vulnerability:** Helper functions like `ensure_hierarchy_node`, `next_sort_order`, and `swap_sort_order` interpolated table or column parameters directly into SQL queries using `format!`.
 **Learning:** Dynamic table and column identifiers in SQLite queries cannot be parameterized with `?` or `params!`. If string interpolation is required for table or column names, inputs must be strictly validated against an explicit whitelist of allowed identifiers.
 **Prevention:** Always validate string-interpolated table or column names using strict `match` expression whitelists before constructing SQL queries in Rust DB functions.
+
+## 2026-11-01 - Path Traversal via Untrusted Parent Directory in Project Creation
+**Vulnerability:** The `project_create` IPC endpoint accepted an untrusted `parent_dir` string without validating for path traversal components, allowing project directories and databases to be created outside the user's intended storage root.
+**Learning:** File path inputs supplied in IPC creation requests (`parent_dir`, `database_path`, export filenames) must inspect path components (`Component::ParentDir`) before invoking directory or file creation operations.
+**Prevention:** Validate `parent_dir` in `project_create` using `components().any(|c| matches!(c, std::path::Component::ParentDir))` and reject inputs containing traversal sequences.
