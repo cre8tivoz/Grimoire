@@ -28,7 +28,7 @@ Grimoire keeps your provider API keys in your operating system's own vault — *
 
 ## Download
 
-Grab the latest build from [GitHub Releases](https://github.com/witchdaddylabs/grimoire/releases). Pick the file for your machine, and you're a couple of clicks from writing.
+Grab the latest build from [GitHub Releases](https://github.com/cre8tivoz/Grimoire/releases). Pick the file for your machine, and you're a couple of clicks from writing.
 
 ### Windows
 
@@ -172,7 +172,7 @@ Requirements:
 - Tauri prerequisites for your platform ([macOS](https://tauri.app/start/prerequisites/) or Windows — on Windows you'll need the **Visual Studio Build Tools** with the Desktop C++ workload and **WebView2**, which ships with Windows 11)
 
 ```bash
-git clone https://github.com/witchdaddylabs/grimoire.git
+git clone https://github.com/cre8tivoz/Grimoire.git grimoire
 cd grimoire
 npm install
 npm run tauri dev    # run in development
@@ -230,7 +230,7 @@ Grimoire runs on both **macOS and Windows**, and ships as unsigned community ins
 - Cross-platform credential storage (`keyring`), Windows icon + NSIS installer, and a `windows-latest` CI/release pipeline
 - **Story Plan layer** — Plan→Scenes→Beats structural editor, beat pinning, layer-aware regeneration context, multi-variant generation with ward scanning, and an accept/reject flow that writes back to the plan
 
-See the [GitHub Issues](https://github.com/witchdaddylabs/grimoire/issues) for current work items.
+See the [GitHub Issues](https://github.com/cre8tivoz/Grimoire/issues) for current work items.
 
 ## License
 
