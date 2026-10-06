@@ -109,7 +109,14 @@ function ResultList({ results, onSelect }: { results: SearchChunkResult[]; onSel
   return (
     <div className="result-list">
       {results.slice(0, 8).map((r) => (
-        <button key={r.chunkId} className="result-item" type="button" onClick={() => onSelect(r.itemId)}>
+        <button
+          key={r.chunkId}
+          className="result-item"
+          type="button"
+          aria-label={`Open "${r.title}" in Canvas`}
+          title={`Open "${r.title}" in Canvas`}
+          onClick={() => onSelect(r.itemId)}
+        >
           <strong>{r.title}</strong>
           <span className="result-snippet">{r.snippet?.slice(0, 120)}</span>
         </button>
