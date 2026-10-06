@@ -23,6 +23,7 @@ function SectionTitle({ icon, id, title }: { icon: ReactNode; id: string; title:
 
 export function ToolAccordion({ id, icon, open, title, onToggle, children }: ToolAccordionProps) {
   const titleId = `${id}-title`;
+  const toggleLabel = `${open ? "Collapse" : "Expand"} ${title} section`;
   return (
     <section className={open ? "tool-section open" : "tool-section"} aria-labelledby={titleId}>
       <button
@@ -30,6 +31,8 @@ export function ToolAccordion({ id, icon, open, title, onToggle, children }: Too
         type="button"
         aria-expanded={open}
         aria-controls={`${id}-body`}
+        aria-label={toggleLabel}
+        title={toggleLabel}
         onClick={() => onToggle(id)}
       >
         <SectionTitle icon={icon} id={titleId} title={title} />
