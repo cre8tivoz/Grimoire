@@ -18,6 +18,14 @@ pub fn parse_external_vault(path: Option<String>) -> ExternalResult<ExternalVaul
         }
     };
 
+    // Security check: prevent path traversal sequences.
+    if source_path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return Err("Vault file path cannot contain path traversal ('..').".to_string());
+    }
+
     // Security check: restrict file reading to .yaml / .yml external Vault structures.
     let extension = source_path
         .extension()
@@ -187,6 +195,18 @@ fn value_to_string_list(value: &Value) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_external_vault_rejects_path_traversal() {
+        assert_eq!(
+            parse_external_vault(Some("../../etc/passwd.yaml".to_string())).unwrap_err(),
+            "Vault file path cannot contain path traversal ('..')."
+        );
+        assert_eq!(
+            parse_external_vault(Some("config/../secret.yml".to_string())).unwrap_err(),
+            "Vault file path cannot contain path traversal ('..')."
+        );
+    }
 
     #[test]
     fn parse_external_vault_rejects_non_yaml_extensions() {
