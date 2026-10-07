@@ -53,6 +53,13 @@ pub fn project_folder_name(name: &str) -> String {
 }
 
 pub fn validate_project_dir(project_dir: PathBuf) -> CommandResult<PathBuf> {
+    if project_dir
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return Err("Project directory path cannot contain path traversal ('..').".to_string());
+    }
+
     if project_dir.extension().and_then(|value| value.to_str()) != Some("grimoire") {
         return Err("Expected a .grimoire project folder".to_string());
     }
@@ -295,5 +302,12 @@ mod tests {
         assert!(!is_safe_project_db_path(&temp_dir, "/etc/passwd"));
 
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn validate_project_dir_rejects_path_traversal() {
+        let path = PathBuf::from("../../some/folder.grimoire");
+        let err = validate_project_dir(path).unwrap_err();
+        assert!(err.contains("path traversal"));
     }
 }
