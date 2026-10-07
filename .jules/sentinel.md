@@ -17,3 +17,8 @@
 **Vulnerability:** The `project_create` IPC endpoint accepted an untrusted `parent_dir` string without validating for path traversal components, allowing project directories and databases to be created outside the user's intended storage root.
 **Learning:** File path inputs supplied in IPC creation requests (`parent_dir`, `database_path`, export filenames) must inspect path components (`Component::ParentDir`) before invoking directory or file creation operations.
 **Prevention:** Validate `parent_dir` in `project_create` using `components().any(|c| matches!(c, std::path::Component::ParentDir))` and reject inputs containing traversal sequences.
+
+## 2026-11-20 - Missing Path Traversal Check in Project Directory Validation
+**Vulnerability:** `validate_project_dir` did not inspect path components for parent directory sequences (`Component::ParentDir`), allowing IPC command handlers that process `project_path` inputs to accept traversal paths.
+**Learning:** Checking directory existence (`is_dir()`) or file extension alone is insufficient to prevent path traversal in user or IPC arguments.
+**Prevention:** Always check `components().any(|c| matches!(c, Component::ParentDir))` in core path validation helpers before checking directory existence or extensions.
