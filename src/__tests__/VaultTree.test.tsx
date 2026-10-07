@@ -110,9 +110,10 @@ describe("VaultTree", () => {
     expect(newHallBtn).toHaveAttribute("title", "New Hall in Act One");
   });
 
-  it("highlights active item", () => {
+  it("highlights active item and renders item title tooltip", () => {
     render(<VaultTree tree={treeWithItems} activeItemId="i1" expandedNodeIds={new Set(["w1", "h1", "r1", "d1"])} onArchiveItem={noop} onCreateNode={noop} onToggle={noop} onSelectItem={noop} />);
     const alice = screen.getByText("Alice").closest("[class*='tree-item']");
     expect(alice).toHaveClass("active");
+    expect(alice).toHaveAttribute("title", "Alice");
   });
 });

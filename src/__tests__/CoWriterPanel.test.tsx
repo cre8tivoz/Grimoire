@@ -169,4 +169,28 @@ describe("CoWriterPanel Accessibility", () => {
     expect(insertBtn).toBeInTheDocument();
     expect(insertBtn).toHaveAttribute("title", "Insert answer into Canvas");
   });
+
+  it("renders search result item buttons with accessible aria-label and title", () => {
+    render(
+      <CoWriterPanel
+        {...defaultProps}
+        searchResults={[
+          {
+            chunkId: "chunk-1",
+            itemId: "item-1",
+            title: "Dark Forest",
+            itemType: "note",
+            vaultPath: "Main Wing / Dark Forest",
+            snippet: "Trees towering over...",
+            score: 0.9,
+            confidence: "high",
+          },
+        ]}
+      />
+    );
+
+    const resultBtn = screen.getByLabelText('Open "Dark Forest" in Canvas');
+    expect(resultBtn).toBeInTheDocument();
+    expect(resultBtn).toHaveAttribute("title", 'Open "Dark Forest" in Canvas');
+  });
 });
