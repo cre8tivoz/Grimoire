@@ -139,15 +139,33 @@ describe("SettingsPanel", () => {
     expect(openAiRadio).toHaveAttribute("aria-checked", "false");
   });
 
-  it("disables save key button when apiKey is empty", () => {
+  it("disables save key button when apiKey is empty and provides accessible aria-label and title", () => {
     render(<SettingsPanel {...defaults} activeProvider="openAi" apiKey="" />);
     const saveButton = screen.getByText("Save Key").closest("button");
     expect(saveButton).toBeDisabled();
+    expect(saveButton).toHaveAttribute("aria-label", "Save API key (disabled: enter an API key first)");
+    expect(saveButton).toHaveAttribute("title", "Enter an API key first to save");
   });
 
-  it("enables save key button when apiKey has value", () => {
+  it("enables save key button when apiKey has value and provides context-aware aria-label and title", () => {
     render(<SettingsPanel {...defaults} activeProvider="openAi" apiKey="sk-test" />);
     const saveButton = screen.getByText("Save Key").closest("button");
     expect(saveButton).not.toBeDisabled();
+    expect(saveButton).toHaveAttribute("aria-label", "Save API key for OpenAI");
+    expect(saveButton).toHaveAttribute("title", "Save API key for OpenAI");
+  });
+
+  it("provides accessible aria-label and title for delete key button in disabled and enabled states", () => {
+    const { rerender } = render(<SettingsPanel {...defaults} activeProvider="openAi" hasApiKey={false} />);
+    const disabledDeleteBtn = screen.getByText("Delete Key").closest("button");
+    expect(disabledDeleteBtn).toBeDisabled();
+    expect(disabledDeleteBtn).toHaveAttribute("aria-label", "Delete API key (disabled: no saved API key)");
+    expect(disabledDeleteBtn).toHaveAttribute("title", "No saved API key to delete");
+
+    rerender(<SettingsPanel {...defaults} activeProvider="openAi" hasApiKey={true} />);
+    const enabledDeleteBtn = screen.getByText("Delete Key").closest("button");
+    expect(enabledDeleteBtn).not.toBeDisabled();
+    expect(enabledDeleteBtn).toHaveAttribute("aria-label", "Delete saved API key for OpenAI");
+    expect(enabledDeleteBtn).toHaveAttribute("title", "Delete saved API key for OpenAI");
   });
 });
