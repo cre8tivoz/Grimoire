@@ -154,10 +154,40 @@ export function SettingsPanel({
               placeholder={`Paste ${providerLabels[activeProvider]} API key`}
             />
             <div className="inline-actions">
-              <button className="button button-primary" type="button" onClick={onApiKeySave} disabled={!apiKey.trim()}>
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={onApiKeySave}
+                disabled={!apiKey.trim()}
+                aria-label={
+                  !apiKey.trim()
+                    ? "Save API key (disabled: enter an API key first)"
+                    : `Save API key for ${providerLabels[activeProvider]}`
+                }
+                title={
+                  !apiKey.trim()
+                    ? "Enter an API key first to save"
+                    : `Save API key for ${providerLabels[activeProvider]}`
+                }
+              >
                 <Key size={16} aria-hidden="true" /> Save Key
               </button>
-              <button className="button button-secondary" type="button" onClick={onApiKeyDelete} disabled={!hasApiKey}>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={onApiKeyDelete}
+                disabled={!hasApiKey}
+                aria-label={
+                  !hasApiKey
+                    ? "Delete API key (disabled: no saved API key)"
+                    : `Delete saved API key for ${providerLabels[activeProvider]}`
+                }
+                title={
+                  !hasApiKey
+                    ? "No saved API key to delete"
+                    : `Delete saved API key for ${providerLabels[activeProvider]}`
+                }
+              >
                 <Trash2 size={16} aria-hidden="true" /> Delete Key
               </button>
             </div>
