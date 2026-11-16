@@ -82,6 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Grimoire-dmg
+          retention-days: 1
           path: |
             src-tauri/target/release/bundle/dmg/*.dmg
             grimoire-dmg-sha256.txt
@@ -149,6 +150,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Grimoire-windows-nsis
+          retention-days: 1
           path: |
             src-tauri/target/release/bundle/nsis/*-setup.exe
             grimoire-exe-sha256.txt
