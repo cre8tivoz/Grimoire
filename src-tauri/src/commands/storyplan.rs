@@ -71,6 +71,24 @@ pub(crate) fn read_scenes(
         .map_err(|error| format!("Could not read story scenes: {error}"))
 }
 
+fn row_to_story_beat(row: &rusqlite::Row<'_>) -> rusqlite::Result<StoryBeat> {
+    let characters_json: Option<String> = row.get(4)?;
+    let locked_int: i64 = row.get(5)?;
+    Ok(StoryBeat {
+        id: row.get(0)?,
+        scene_id: row.get(1)?,
+        beat_type: row.get(2)?,
+        content: row.get(3)?,
+        characters: characters_json
+            .as_deref()
+            .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok()),
+        locked: locked_int != 0,
+        sort_order: row.get(6)?,
+        created_at: row.get(7)?,
+        updated_at: row.get(8)?,
+    })
+}
+
 pub(crate) fn read_beats(connection: &Connection, scene_id: &str) -> CommandResult<Vec<StoryBeat>> {
     let mut statement = connection
         .prepare(
@@ -82,27 +100,43 @@ pub(crate) fn read_beats(connection: &Connection, scene_id: &str) -> CommandResu
         .map_err(|error| format!("Could not read story beats: {error}"))?;
 
     let rows = statement
-        .query_map(params![scene_id], |row| {
-            let characters_json: Option<String> = row.get(4)?;
-            let locked_int: i64 = row.get(5)?;
-            Ok(StoryBeat {
-                id: row.get(0)?,
-                scene_id: row.get(1)?,
-                beat_type: row.get(2)?,
-                content: row.get(3)?,
-                characters: characters_json
-                    .as_deref()
-                    .and_then(|raw| serde_json::from_str::<Vec<String>>(raw).ok()),
-                locked: locked_int != 0,
-                sort_order: row.get(6)?,
-                created_at: row.get(7)?,
-                updated_at: row.get(8)?,
-            })
-        })
+        .query_map(params![scene_id], row_to_story_beat)
         .map_err(|error| format!("Could not read story beats: {error}"))?;
 
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("Could not read story beats: {error}"))
+}
+
+fn read_plan_beats(
+    connection: &Connection,
+    plan_id: &str,
+) -> CommandResult<std::collections::HashMap<String, Vec<StoryBeat>>> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT b.id, b.scene_id, b.beat_type, b.content, b.characters, b.locked, b.sort_order, b.created_at, b.updated_at
+            FROM story_beats b
+            JOIN story_scenes s ON s.id = b.scene_id
+            WHERE s.plan_id = ?1
+            ORDER BY b.sort_order ASC
+            "#,
+        )
+        .map_err(|error| format!("Could not read story beats: {error}"))?;
+
+    let rows = statement
+        .query_map(params![plan_id], row_to_story_beat)
+        .map_err(|error| format!("Could not read story beats: {error}"))?;
+
+    let mut by_scene: std::collections::HashMap<String, Vec<StoryBeat>> =
+        std::collections::HashMap::new();
+    for row in rows {
+        let beat = row.map_err(|error| format!("Could not read story beats: {error}"))?;
+        by_scene
+            .entry(beat.scene_id.clone())
+            .or_default()
+            .push(beat);
+    }
+    Ok(by_scene)
 }
 
 pub(crate) fn read_plan_detail(
@@ -111,9 +145,14 @@ pub(crate) fn read_plan_detail(
 ) -> CommandResult<StoryPlanDetail> {
     let plan = read_plan(connection, plan_id)?;
     let scenes = read_scenes(connection, plan_id)?;
+    let mut beats_by_scene = if scenes.is_empty() {
+        std::collections::HashMap::new()
+    } else {
+        read_plan_beats(connection, plan_id)?
+    };
     let mut scenes_with_beats = Vec::with_capacity(scenes.len());
     for scene in scenes {
-        let beats = read_beats(connection, &scene.id)?;
+        let beats = beats_by_scene.remove(&scene.id).unwrap_or_default();
         scenes_with_beats.push(StorySceneWithBeats { scene, beats });
     }
     Ok(StoryPlanDetail {
@@ -1947,6 +1986,31 @@ mod tests {
         assert_eq!(detail.scenes[0].beats.len(), 2);
         assert_eq!(detail.scenes[1].beats.len(), 0);
         assert!(detail.scenes[0].beats[1].locked);
+    }
+
+    #[test]
+    fn read_plan_detail_groups_beats_across_scenes_and_plans() {
+        let conn = test_db();
+        insert_plan(&conn, "plan_1");
+        insert_plan(&conn, "plan_2");
+        conn.execute(
+            "INSERT INTO story_scenes (id, plan_id, title, sort_order, created_at, updated_at) VALUES ('scene_1', 'plan_1', 'First', 0, '1', '1'), ('scene_2', 'plan_1', 'Second', 1, '1', '1'), ('scene_other', 'plan_2', 'Other', 0, '1', '1')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO story_beats (id, scene_id, beat_type, content, locked, sort_order, created_at, updated_at) VALUES ('b2', 'scene_1', 'action', 'Two', 0, 1, '1', '1'), ('b1', 'scene_1', 'action', 'One', 0, 0, '1', '1'), ('b3', 'scene_2', 'dialogue', 'Three', 0, 0, '1', '1'), ('b_other', 'scene_other', 'action', 'Other', 0, 0, '1', '1')",
+            [],
+        )
+        .unwrap();
+
+        let detail = read_plan_detail(&conn, "plan_1").unwrap();
+        assert_eq!(detail.scenes.len(), 2);
+        assert_eq!(detail.scenes[0].beats.len(), 2);
+        assert_eq!(detail.scenes[0].beats[0].id, "b1");
+        assert_eq!(detail.scenes[0].beats[1].id, "b2");
+        assert_eq!(detail.scenes[1].beats.len(), 1);
+        assert_eq!(detail.scenes[1].beats[0].id, "b3");
     }
 
     #[test]
