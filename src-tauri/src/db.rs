@@ -5,6 +5,7 @@ use crate::models::{
     VaultRoomNode, VaultTreeResponse, VaultWingNode, WardScanResponse,
 };
 use rusqlite::{params, Connection, Params};
+use std::collections::HashMap;
 
 // -- Re-exports used by vault.rs / wards.rs --
 
@@ -35,18 +36,160 @@ pub fn count_words(text: &str) -> i64 {
     text.split_whitespace().count() as i64
 }
 
+type NamedNode = (String, String, Option<String>);
+
+struct RawVaultItem {
+    id: String,
+    title: String,
+    item_type: String,
+    content: Option<String>,
+    word_count: i64,
+}
+
+fn collect_grouped_nodes(
+    connection: &Connection,
+    query: &str,
+    kind: &str,
+) -> CommandResult<HashMap<String, Vec<NamedNode>>> {
+    let mut statement = connection
+        .prepare(query)
+        .map_err(|error| format!("Could not prepare vault {kind} query: {error}"))?;
+    let mapped = statement
+        .query_map([], |row| {
+            Ok((row.get(0)?, (row.get(1)?, row.get(2)?, row.get(3)?)))
+        })
+        .map_err(|error| format!("Could not query vault {kind}s: {error}"))?;
+
+    let mut grouped: HashMap<String, Vec<NamedNode>> = HashMap::new();
+    for row in mapped {
+        let (parent_id, node): (String, NamedNode) =
+            row.map_err(|error| format!("Could not read vault {kind} row: {error}"))?;
+        grouped.entry(parent_id).or_default().push(node);
+    }
+    Ok(grouped)
+}
+
+fn collect_grouped_items(connection: &Connection) -> CommandResult<HashMap<String, Vec<RawVaultItem>>> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT drawer_id, id, title, item_type, content, word_count
+            FROM items
+            WHERE archived_at IS NULL
+            ORDER BY sort_order, title
+            "#,
+        )
+        .map_err(|error| format!("Could not prepare item query: {error}"))?;
+
+    let mapped = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                RawVaultItem {
+                    id: row.get(1)?,
+                    title: row.get(2)?,
+                    item_type: row.get(3)?,
+                    content: row.get(4)?,
+                    word_count: row.get(5)?,
+                },
+            ))
+        })
+        .map_err(|error| format!("Could not query vault items: {error}"))?;
+
+    let mut grouped: HashMap<String, Vec<RawVaultItem>> = HashMap::new();
+    for row in mapped {
+        let (drawer_id, item) = row.map_err(|error| format!("Could not read vault item: {error}"))?;
+        grouped.entry(drawer_id).or_default().push(item);
+    }
+    Ok(grouped)
+}
+
 pub fn read_vault_tree(connection: &Connection) -> CommandResult<VaultTreeResponse> {
     let wing_rows = collect_named_rows(
         connection,
         "SELECT id, name, description FROM wings ORDER BY sort_order, name",
         [],
     )?;
+    if wing_rows.is_empty() {
+        return Ok(VaultTreeResponse {
+            wings: Vec::new(),
+            item_count: 0,
+        });
+    }
+
+    let mut halls_by_wing = collect_grouped_nodes(
+        connection,
+        "SELECT wing_id, id, name, description FROM halls ORDER BY sort_order, name",
+        "hall",
+    )?;
+    let mut rooms_by_hall = collect_grouped_nodes(
+        connection,
+        "SELECT hall_id, id, name, description FROM rooms ORDER BY sort_order, name",
+        "room",
+    )?;
+    let mut drawers_by_room = collect_grouped_nodes(
+        connection,
+        "SELECT room_id, id, name, description FROM drawers ORDER BY sort_order, name",
+        "drawer",
+    )?;
+    let mut items_by_drawer = collect_grouped_items(connection)?;
 
     let mut item_count = 0;
-    let mut wings = Vec::new();
+    let mut wings = Vec::with_capacity(wing_rows.len());
 
     for (wing_id, wing_name, wing_description) in wing_rows {
-        let halls = read_halls(connection, &wing_id, &wing_name, &mut item_count)?;
+        let hall_rows = halls_by_wing.remove(&wing_id).unwrap_or_default();
+        let mut halls = Vec::with_capacity(hall_rows.len());
+
+        for (hall_id, hall_name, hall_description) in hall_rows {
+            let room_rows = rooms_by_hall.remove(&hall_id).unwrap_or_default();
+            let mut rooms = Vec::with_capacity(room_rows.len());
+
+            for (room_id, room_name, room_description) in room_rows {
+                let drawer_rows = drawers_by_room.remove(&room_id).unwrap_or_default();
+                let mut drawers = Vec::with_capacity(drawer_rows.len());
+
+                for (drawer_id, drawer_name, drawer_description) in drawer_rows {
+                    let raw_items = items_by_drawer.remove(&drawer_id).unwrap_or_default();
+                    item_count += raw_items.len();
+                    let items = raw_items
+                        .into_iter()
+                        .map(|item| VaultItemNode {
+                            id: item.id,
+                            path: format!(
+                                "{wing_name} / {hall_name} / {room_name} / {drawer_name} / {}",
+                                item.title
+                            ),
+                            title: item.title,
+                            item_type: item.item_type,
+                            content: item.content,
+                            word_count: item.word_count,
+                        })
+                        .collect();
+                    drawers.push(VaultDrawerNode {
+                        id: drawer_id,
+                        name: drawer_name,
+                        description: drawer_description,
+                        items,
+                    });
+                }
+
+                rooms.push(VaultRoomNode {
+                    id: room_id,
+                    name: room_name,
+                    description: room_description,
+                    drawers,
+                });
+            }
+
+            halls.push(VaultHallNode {
+                id: hall_id,
+                name: hall_name,
+                description: hall_description,
+                rooms,
+            });
+        }
+
         wings.push(VaultWingNode {
             id: wing_id,
             name: wing_name,
@@ -56,139 +199,6 @@ pub fn read_vault_tree(connection: &Connection) -> CommandResult<VaultTreeRespon
     }
 
     Ok(VaultTreeResponse { wings, item_count })
-}
-
-fn read_halls(
-    connection: &Connection,
-    wing_id: &str,
-    wing_name: &str,
-    item_count: &mut usize,
-) -> CommandResult<Vec<VaultHallNode>> {
-    let hall_rows = collect_named_rows(
-        connection,
-        "SELECT id, name, description FROM halls WHERE wing_id = ?1 ORDER BY sort_order, name",
-        params![wing_id],
-    )?;
-
-    let mut halls = Vec::new();
-    for (hall_id, hall_name, hall_description) in hall_rows {
-        let rooms = read_rooms(connection, &hall_id, wing_name, &hall_name, item_count)?;
-        halls.push(VaultHallNode {
-            id: hall_id,
-            name: hall_name,
-            description: hall_description,
-            rooms,
-        });
-    }
-
-    Ok(halls)
-}
-
-fn read_rooms(
-    connection: &Connection,
-    hall_id: &str,
-    wing_name: &str,
-    hall_name: &str,
-    item_count: &mut usize,
-) -> CommandResult<Vec<VaultRoomNode>> {
-    let room_rows = collect_named_rows(
-        connection,
-        "SELECT id, name, description FROM rooms WHERE hall_id = ?1 ORDER BY sort_order, name",
-        params![hall_id],
-    )?;
-
-    let mut rooms = Vec::new();
-    for (room_id, room_name, room_description) in room_rows {
-        let drawers = read_drawers(
-            connection, &room_id, wing_name, hall_name, &room_name, item_count,
-        )?;
-        rooms.push(VaultRoomNode {
-            id: room_id,
-            name: room_name,
-            description: room_description,
-            drawers,
-        });
-    }
-
-    Ok(rooms)
-}
-
-fn read_drawers(
-    connection: &Connection,
-    room_id: &str,
-    wing_name: &str,
-    hall_name: &str,
-    room_name: &str,
-    item_count: &mut usize,
-) -> CommandResult<Vec<VaultDrawerNode>> {
-    let drawer_rows = collect_named_rows(
-        connection,
-        "SELECT id, name, description FROM drawers WHERE room_id = ?1 ORDER BY sort_order, name",
-        params![room_id],
-    )?;
-
-    let mut drawers = Vec::new();
-    for (drawer_id, drawer_name, drawer_description) in drawer_rows {
-        let items = read_items(
-            connection,
-            &drawer_id,
-            wing_name,
-            hall_name,
-            room_name,
-            &drawer_name,
-        )?;
-        *item_count += items.len();
-        drawers.push(VaultDrawerNode {
-            id: drawer_id,
-            name: drawer_name,
-            description: drawer_description,
-            items,
-        });
-    }
-
-    Ok(drawers)
-}
-
-fn read_items(
-    connection: &Connection,
-    drawer_id: &str,
-    wing_name: &str,
-    hall_name: &str,
-    room_name: &str,
-    drawer_name: &str,
-) -> CommandResult<Vec<VaultItemNode>> {
-    let mut statement = connection
-        .prepare(
-            r#"
-            SELECT id, title, item_type, content, word_count
-            FROM items
-            WHERE drawer_id = ?1
-              AND archived_at IS NULL
-            ORDER BY sort_order, title
-            "#,
-        )
-        .map_err(|error| format!("Could not prepare item query: {error}"))?;
-
-    let mapped = statement
-        .query_map(params![drawer_id], |row| {
-            let title: String = row.get(1)?;
-            Ok(VaultItemNode {
-                id: row.get(0)?,
-                path: format!("{wing_name} / {hall_name} / {room_name} / {drawer_name} / {title}"),
-                title,
-                item_type: row.get(2)?,
-                content: row.get(3)?,
-                word_count: row.get(4)?,
-            })
-        })
-        .map_err(|error| format!("Could not query vault items: {error}"))?;
-
-    let mut items = Vec::new();
-    for item in mapped {
-        items.push(item.map_err(|error| format!("Could not read vault item: {error}"))?);
-    }
-
-    Ok(items)
 }
 
 pub fn read_item_detail(connection: &Connection, item_id: &str) -> CommandResult<VaultItemDetail> {
@@ -374,13 +384,21 @@ pub fn sync_item_chunks(
     vault_path: &str,
     text: &str,
 ) -> CommandResult<usize> {
-    clear_item_chunks(connection, item_id)?;
     let chunks = chunk_text(text, 240);
     let now = timestamp();
-    for (index, chunk) in chunks.iter().enumerate() {
-        let chunk_id = format!("{item_id}_chunk_{index}");
-        connection
-            .execute(
+
+    connection
+        .execute_batch("SAVEPOINT sync_item_chunks;")
+        .map_err(|error| format!("Could not start chunk sync transaction: {error}"))?;
+
+    let result = (|| {
+        clear_item_chunks(connection, item_id)?;
+        if chunks.is_empty() {
+            return Ok(0);
+        }
+
+        let mut chunk_stmt = connection
+            .prepare(
                 r#"
                 INSERT INTO item_chunks (
                   id, item_id, chunk_index, text, word_count, start_offset,
@@ -388,30 +406,53 @@ pub fn sync_item_chunks(
                 )
                 VALUES (?1, ?2, ?3, ?4, ?5, NULL, NULL, ?6, ?6)
                 "#,
-                params![
-                    chunk_id,
-                    item_id,
-                    index as i64,
-                    chunk,
-                    count_words(chunk),
-                    now
-                ],
             )
-            .map_err(|error| format!("Could not write item chunk: {error}"))?;
-        connection
-            .execute(
+            .map_err(|error| format!("Could not prepare item chunk insert: {error}"))?;
+        let mut fts_stmt = connection
+            .prepare(
                 r#"
                 INSERT INTO item_chunks_fts (
                   chunk_id, item_id, title, item_type, vault_path, text
                 )
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
                 "#,
-                params![chunk_id, item_id, title, item_type, vault_path, chunk],
             )
-            .map_err(|error| format!("Could not update search index: {error}"))?;
-    }
+            .map_err(|error| format!("Could not prepare search index insert: {error}"))?;
 
-    Ok(chunks.len())
+        for (index, chunk) in chunks.iter().enumerate() {
+            let chunk_id = format!("{item_id}_chunk_{index}");
+            chunk_stmt
+                .execute(params![
+                    chunk_id,
+                    item_id,
+                    index as i64,
+                    chunk,
+                    count_words(chunk),
+                    now
+                ])
+                .map_err(|error| format!("Could not write item chunk: {error}"))?;
+            fts_stmt
+                .execute(params![chunk_id, item_id, title, item_type, vault_path, chunk])
+                .map_err(|error| format!("Could not update search index: {error}"))?;
+        }
+
+        Ok(chunks.len())
+    })();
+
+    match result {
+        Ok(count) => {
+            connection
+                .execute_batch("RELEASE SAVEPOINT sync_item_chunks;")
+                .map_err(|error| format!("Could not commit chunk sync: {error}"))?;
+            Ok(count)
+        }
+        Err(error) => {
+            let _ = connection.execute_batch(
+                "ROLLBACK TO SAVEPOINT sync_item_chunks; RELEASE SAVEPOINT sync_item_chunks;",
+            );
+            Err(error)
+        }
+    }
 }
 
 pub fn read_banned_words(connection: &Connection) -> CommandResult<Vec<BannedWord>> {
@@ -748,6 +789,34 @@ mod tests {
     }
 
     #[test]
+    fn read_vault_tree_preserves_order_and_skips_archived_items() {
+        let conn = test_db();
+        insert_test_wing(&conn, "w2", "Beta");
+        insert_test_wing(&conn, "w1", "Alpha");
+        insert_test_hall(&conn, "h1", "w1", "Hall A");
+        insert_test_room(&conn, "r1", "h1", "Room A");
+        insert_test_drawer(&conn, "d1", "r1", "Drawer A");
+        insert_test_item(&conn, "i_z", "d1", "Zeta", "note");
+        insert_test_item(&conn, "i_a", "d1", "Alpha", "note");
+        conn.execute(
+            "INSERT INTO items (id, drawer_id, title, item_type, content, plain_text, word_count, memory_enabled, source_kind, sort_order, created_at, updated_at, archived_at) VALUES ('i_arch', 'd1', 'Archived', 'note', '', '', 0, 1, 'manual', 0, '', '', '2026-01-01')",
+            [],
+        )
+        .unwrap();
+
+        let tree = read_vault_tree(&conn).unwrap();
+        assert_eq!(tree.wings.len(), 2);
+        assert_eq!(tree.wings[0].name, "Alpha");
+        assert_eq!(tree.wings[1].name, "Beta");
+        assert_eq!(tree.item_count, 2);
+        let items = &tree.wings[0].halls[0].rooms[0].drawers[0].items;
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].title, "Alpha");
+        assert_eq!(items[0].path, "Alpha / Hall A / Room A / Drawer A / Alpha");
+        assert_eq!(items[1].title, "Zeta");
+    }
+
+    #[test]
     fn read_item_detail_existing() {
         let conn = test_db();
         insert_test_wing(&conn, "w1", "Wing");
@@ -933,6 +1002,33 @@ mod tests {
             )
             .unwrap();
         assert_eq!(count, 0);
+
+        let long_text = (0..300)
+            .map(|idx| format!("word{idx}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let synced = sync_item_chunks(&conn, "i1", "Item", "note", "Wing / Hall / Room / Drawer / Item", &long_text).unwrap();
+        assert_eq!(synced, 2);
+
+        let fts_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM item_chunks_fts WHERE item_id = 'i1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(fts_count, 2);
+
+        let cleared = sync_item_chunks(&conn, "i1", "Item", "note", "Wing / Hall / Room / Drawer / Item", "   ").unwrap();
+        assert_eq!(cleared, 0);
+        let remaining: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM item_chunks WHERE item_id = 'i1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(remaining, 0);
     }
 
     #[test]

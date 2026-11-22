@@ -1,5 +1,5 @@
 use super::*;
-use crate::db::{item_path, read_banned_words, read_item_detail, read_vault_tree};
+use crate::db::{read_banned_words, read_item_detail, read_vault_tree};
 use crate::helpers::timestamp;
 use serde_json::json;
 
@@ -75,19 +75,27 @@ pub fn export_vault_items_json(project_path: String) -> CommandResult<ExportResp
         .prepare(
             r#"
             SELECT
-              id,
-              title,
-              item_type,
-              COALESCE(content, ''),
-              COALESCE(plain_text, ''),
-              word_count,
-              source_kind,
-              source_path,
-              created_at,
-              updated_at
-            FROM items
-            WHERE archived_at IS NULL
-            ORDER BY sort_order, updated_at DESC
+              i.id,
+              i.title,
+              i.item_type,
+              COALESCE(i.content, ''),
+              COALESCE(i.plain_text, ''),
+              i.word_count,
+              i.source_kind,
+              i.source_path,
+              i.created_at,
+              i.updated_at,
+              w.name,
+              h.name,
+              r.name,
+              d.name
+            FROM items i
+            LEFT JOIN drawers d ON d.id = i.drawer_id
+            LEFT JOIN rooms r ON r.id = d.room_id
+            LEFT JOIN halls h ON h.id = r.hall_id
+            LEFT JOIN wings w ON w.id = h.wing_id
+            WHERE i.archived_at IS NULL
+            ORDER BY i.sort_order, i.updated_at DESC
             "#,
         )
         .map_err(|error| format!("Could not prepare Vault items export: {error}"))?;
@@ -96,7 +104,14 @@ pub fn export_vault_items_json(project_path: String) -> CommandResult<ExportResp
         .query_map([], |row| {
             let id: String = row.get(0)?;
             let title: String = row.get(1)?;
-            let path = item_path(&connection, &id, &title).unwrap_or_else(|_| title.clone());
+            let wing: Option<String> = row.get(10)?;
+            let hall: Option<String> = row.get(11)?;
+            let room: Option<String> = row.get(12)?;
+            let drawer: Option<String> = row.get(13)?;
+            let path = match (wing, hall, room, drawer) {
+                (Some(w), Some(h), Some(r), Some(d)) => format!("{w} / {h} / {r} / {d} / {title}"),
+                _ => title.clone(),
+            };
             Ok(json!({
                 "id": id,
                 "title": title,
